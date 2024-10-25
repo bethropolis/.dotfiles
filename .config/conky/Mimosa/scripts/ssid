@@ -1,0 +1,22 @@
+#!/bin/bash
+
+# A simple script to display wifi name
+# 'ssid -i' = with icon, 'ssid' = text only
+# Cheers!
+# Addy
+
+# Get the SSID name
+ssid=$(nmcli -t -f active,ssid dev wifi | awk -F':' '/yes/ {print $2}')
+
+# Check if SSID is available
+if [ -n "$ssid" ]; then
+    if [ "$1" = "-i" ]; then
+        echo " $ssid"
+    else
+        echo "$ssid"
+    fi
+else
+    echo "Not Connected"
+fi
+
+exit
