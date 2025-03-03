@@ -4,8 +4,6 @@ end
 
 
 
-# config.fish
-
 
 set -x DOTFILES $HOME/Projects/.dotfiles/
 
@@ -48,22 +46,40 @@ if command -v starship >/dev/null
     starship init fish | source
 end
 
+zoxide init fish | source
+
+function mkcd
+    mkdir -p $argv[1]
+    cd $argv[1]
+end
+
 # My aliases
+alias cd="z"
+alias op="xdg-open"
 alias nv="nvim"
-alias bashrc="nv ~/.bashrc"
+alias bashrc="nv $HOME/.bashrc"
 alias brc="bashrc"
-alias fishrc="nv ~/.config/fish/config.fish"
+alias fishrc="nv $HOME/.config/fish/config.fish"
 alias frc="fishrc"
+alias src="source $HOME/.config/fish/config.fish"
+alias gs="git status"
 alias dots="cd $DOTFILES"
 alias cls="clear"
 alias neofetch="fastfetch"
 alias mariadb="mariadb -u bethro -p"
 alias docker="podman"
-alias proj="cd ~/Projects/"
 alias lg='lazygit'
+alias vlc="flatpak run org.videolan.VLC"
+alias clap="flatpak run com.github.rafostar.Clapper"
+alias anime="bash $HOME/.config/anime/anime.sh -o eng -r 720 -a"
 alias yeet='sudo dnf remove'
 
 # Custom function to source fish config (equivalent to source bashrc)
 function reload_fish
     source ~/.config/fish/config.fish
 end
+
+
+
+# initial scripts and patches
+killall gnome-software
