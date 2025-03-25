@@ -53,6 +53,13 @@ function mkcd
     cd $argv[1]
 end
 
+function dump
+    bash "$HOME/scripts/flatpaks.sh"
+    bash "$HOME/scripts/gextensions.sh"
+end
+
+
+
 # My aliases
 alias cd="z"
 alias op="xdg-open"
