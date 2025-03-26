@@ -89,4 +89,4 @@ end
 
 
 # initial scripts and patches
-killall gnome-software
+killall gnome-software >/dev/null &

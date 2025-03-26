@@ -2,9 +2,10 @@
 
 # Script to manage GNOME Shell Extensions
 # - Dumps installed extensions to a text file
-# - Can install extensions from the dumped file
+# - Can install extensions from the dumped file, downloading and cleaning up zip files
 
 EXTENSIONS_FILE="$HOME/lists/gnome_extensions.txt"
+CACHE_DIR="/tmp/gnome_extensions_cache"
 
 # Define colors
 RED='\033[0;31m'
@@ -32,10 +33,16 @@ check_dependencies() {
     missing=$((missing + 1))
   fi
 
-  # Check for browser-extension helper
-  if ! command -v gnome-browser-extension &>/dev/null; then
-    echo -e "${YELLOW}⚠ Warning: gnome-browser-extension helper not found.${NC}"
-    echo -e "   Some extension installations might require manual browser setup."
+  # Check for curl for downloading
+  if ! command -v curl &>/dev/null; then
+    echo -e "${RED}✘ Error: curl is not installed. Please install curl.${NC}"
+    missing=$((missing + 1))
+  fi
+
+  # Check for jq for JSON parsing
+  if ! command -v jq &>/dev/null; then
+    echo -e "${RED}✘ Error: jq is not installed. Please install jq.${NC}"
+    missing=$((missing + 1))
   fi
 
   return $missing
@@ -101,6 +108,53 @@ dump_extensions() {
   fi
 }
 
+# Function to get GNOME Shell version
+get_shell_version() {
+  gnome-shell --version | cut -d' ' -f3
+}
+
+# Function to fetch download URL for an extension
+fetch_download_url() {
+  local uuid=$1
+  local shell_version=$(get_shell_version)
+
+  echo -e "${YELLOW}⟳ Fetching extension info for ${BOLD}$uuid${NC}...${NC}"
+
+  local info_json=$(curl -sS "https://extensions.gnome.org/extension-info/?uuid=$uuid&shell_version=$shell_version")
+  if [ -z "$info_json" ]; then
+    echo -e "${RED}✘ Error: Failed to fetch extension info for ${BOLD}$uuid${NC}"
+    return 1
+  fi
+
+  local download_url=$(echo "$info_json" | jq -r ".download_url")
+  if [ "$download_url" == "null" ] || [ -z "$download_url" ]; then
+    echo -e "${RED}✘ Error: No download URL found for ${BOLD}$uuid${NC} (possibly incompatible version)"
+    return 1
+  fi
+
+  echo "https://extensions.gnome.org$download_url"
+}
+
+# Function to download extension zip file
+download_extension() {
+  local uuid=$1
+  local download_url=$2
+  local zip_file="$CACHE_DIR/$uuid.zip"
+
+  echo -e "${YELLOW}⟳ Downloading ${BOLD}$uuid${NC}...${NC}"
+
+  curl -L "$download_url" --progress-bar -o "$zip_file"
+
+  if [ -f "$zip_file" ] && [ -s "$zip_file" ]; then
+    echo -e "${GREEN}✓ Downloaded ${BOLD}$uuid${NC} to ${BOLD}$zip_file${NC}"
+    return 0
+  else
+    echo -e "${RED}✘ Failed to download ${BOLD}$uuid${NC}"
+    [ -f "$zip_file" ] && rm "$zip_file"
+    return 1
+  fi
+}
+
 # Install extensions from file
 install_extensions() {
   echo -e "\n${BOLD}${CYAN}======= Installing GNOME Extensions =======${NC}\n"
@@ -113,6 +167,12 @@ install_extensions() {
     exit 1
   fi
 
+  # Create cache directory
+  mkdir -p "$CACHE_DIR" || {
+    echo -e "${RED}✘ Error: Failed to create cache directory ${BOLD}$CACHE_DIR${NC}"
+    exit 1
+  }
+
   # Count total extensions
   total=$(grep -v "^$" "$EXTENSIONS_FILE" | wc -l)
   current=0
@@ -122,28 +182,48 @@ install_extensions() {
   echo -e "${YELLOW}⟳ Found ${BOLD}$total${NC}${YELLOW} extensions to install${NC}\n"
 
   # Read file line by line
-  while IFS=: read -r extension_id extension_name; do
+  while IFS=: read -r uuid extension_name; do
     # Skip empty lines
-    if [ -z "$extension_id" ]; then
+    if [ -z "$uuid" ]; then
       continue
     fi
 
     current=$((current + 1))
-    echo -e "${BLUE}[$current/$total]${NC} Installing ${BOLD}$extension_name${NC} (${extension_id})..."
+    echo -e "${BLUE}[$current/$total]${NC} Processing ${BOLD}$extension_name${NC} (${uuid})..."
     show_progress $current $total
 
-    # Attempt installation
-    if gnome-extensions install "$extension_id" &>/tmp/gnome_ext_install; then
-      success=$((success + 1))
-      echo -e "${GREEN}✓ Successfully installed ${BOLD}$extension_name${NC}"
+    # Fetch download URL
+    download_url=$(fetch_download_url "$uuid")
+    if [ $? -ne 0 ]; then
+      failed=$((failed + 1))
+      echo -e "${RED}✘ Skipping installation due to failure in fetching download URL.${NC}"
+      echo -e "${PURPLE}------------------------------------------------${NC}"
+      continue
+    fi
 
-      # Enable extension
-      gnome-extensions enable "$extension_id"
+    # Download the extension zip file
+    if download_extension "$uuid" "$download_url"; then
+      zip_file="$CACHE_DIR/$uuid.zip"
+
+      # Install the extension
+      if gnome-extensions install "$zip_file" &>/tmp/gnome_ext_install; then
+        success=$((success + 1))
+        echo -e "${GREEN}✓ Successfully installed ${BOLD}$extension_name${NC}"
+
+        # Enable extension
+        gnome-extensions enable "$uuid"
+
+        # Clean up the zip file
+        rm "$zip_file" && echo -e "${GREEN}✓ Cleaned up ${BOLD}$zip_file${NC}"
+      else
+        failed=$((failed + 1))
+        echo -e "${RED}✘ Failed to install ${BOLD}$extension_name${NC}"
+        echo -e "${YELLOW}  Error details:${NC}"
+        cat /tmp/gnome_ext_install | grep -i error | head -n 2 | sed 's/^/    /'
+      fi
     else
       failed=$((failed + 1))
-      echo -e "${RED}✘ Failed to install ${BOLD}$extension_name${NC}"
-      echo -e "${YELLOW}  Error details:${NC}"
-      cat /tmp/gnome_ext_install | grep -i error | head -n 2 | sed 's/^/    /'
+      echo -e "${RED}✘ Skipping installation due to download failure.${NC}"
     fi
 
     echo -e "${PURPLE}------------------------------------------------${NC}"
@@ -169,7 +249,6 @@ browser_sync() {
   echo -e "2. Configure your browser's GNOME extension synchronization"
   echo -e "3. Manually sync extensions from browser to GNOME Shell"
 
-  # Actual implementation would depend on specific browser and GNOME version
   echo -e "\n${RED}✘ Full browser sync not implemented in this version.${NC}"
 }
 
