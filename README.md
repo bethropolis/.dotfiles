@@ -73,11 +73,11 @@ Example:
 | `lg`          | LazyGit                                          |
 
 
-> [!NOTE]  
-> The aliases and commands listed above are defined in the Fish shell configuration file located at `~/.config/fish/config.fish`.
-
 </details>
 
+
+> [!NOTE]  
+> The aliases and commands listed above are defined in the Fish shell configuration file located at `~/.config/fish/config.fish`.
 
 ---
 
