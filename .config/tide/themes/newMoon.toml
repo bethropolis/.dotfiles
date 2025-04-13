@@ -1,0 +1,411 @@
+#
+# Tide Editor Theme - New Moon
+# Based on the New Moon theme by Tania Rascia (VS Code version)
+# Updated based on user feedback
+#
+
+# Theme Metadata
+name = "New Moon"
+is_dark = true
+
+[styles]
+# New Moon Palette (selected colors from VS Code theme for reference)
+# Background: "#2d2d2d"
+# Foreground: "#b3b9c5"
+# Selection BG: "#444444"
+# Status Bar BG: "#202020"
+# Status Bar FG: "#909090"
+# Comment: "#777c85"
+# String: "#92D192" (Greenish)
+# Keyword: "#ffeea6" (Light Yellow)
+# Attribute: "#ffd479" (Yellow/Gold) -> Changed to Default FG
+# Function/Support: "#E1A6F2" (Magenta/Purple) -> Changed to Default FG
+# Type/Tag/Class: "#6AB0F3" (Blue)
+# Variable/Deleted: "#f2777a" (Reddish)
+# Number/Quote: "#fca369" (Orange)
+# Operator/Escape: "#AC8D58" (Brownish/Gold)
+# Punctuation: "#d5d8df" (Light Gray/Off-white)
+# RegExp/Pseudo-class: "#62CFCF" (Cyan)
+# Parameter: "#848991" (Gray)
+# Property: "#abb2bf" (Mid Gray)
+# Namespace: "#6AB0F3" (Blue) -> Changed to Default FG
+
+#
+# -- UI Elements --
+#
+[styles.Default]
+# Base style for all text
+fg = "#b3b9c5"  # editor.foreground
+bg = "#2d2d2d"  # editor.background
+
+[styles.Selection]
+# Text selection highlight
+fg = "#b3b9c5"  # editor.foreground
+bg = "#444444"  # editor.selectionBackground
+# reverse = false (New Moon uses background color)
+
+[styles.SearchHighlight]
+# Search result highlights
+fg = "#FFD479"  # editor.findMatchBorder (using border color for fg)
+bg = "#101010"  # editor.findMatchBackground
+
+[styles.StatusBar]
+# Status bar at bottom of screen
+fg = "#909090"  # statusBar.foreground
+bg = "#202020"  # statusBar.background
+
+[styles.StatusBarModified]
+# Modified indicator in status bar
+fg = "#ffd479"  # Attribute color (Keeping original yellow for status bar)
+bg = "#202020"  # statusBar.background
+
+[styles.StatusBarMessage]
+# Messages in status bar
+fg = "#b3b9c5"  # Default foreground
+bg = "#202020"  # statusBar.background
+bold = true
+
+[styles.StatusBarFind]
+# Find text prefix in status bar
+fg = "#92D192"  # String color
+bg = "#202020"  # statusBar.background
+bold = true
+
+#
+# -- Basic Syntax Elements --
+#
+[styles.keyword]
+# Keywords (if, else, func, etc)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.string]
+# String literals
+fg = "#92D192"  # Greenish
+
+[styles.comment]
+# Comments
+fg = "#777c85"  # Darker Gray
+italic = true
+
+[styles.number]
+# Numeric literals
+fg = "#fca369"  # Orange
+
+[styles.type]
+# Type names (classes, structs, interfaces, HashMap)
+fg = "#6AB0F3"  # Blue
+
+[styles.function]
+# Function names (Default for function variants) - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.constant]
+# Constants (true, false, nil, user-defined constants)
+fg = "#E1A6F2"  # Magenta/Purple
+
+[styles.variable]
+# Variable names
+fg = "#f2777a"  # Reddish
+
+[styles.operator]
+# Operators (+, -, *, /, etc)
+fg = "#AC8D58"  # Brownish/Gold
+
+[styles.namespace]
+# Namespaces, modules, packages (std::collections) - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.label]
+# Labels for goto statements, etc.
+fg = "#b3b9c5"  # Default foreground
+
+#
+# -- String Variants --
+#
+[styles.string.import]
+# Import path strings
+fg = "#92D192"  # Greenish
+
+[styles.string.escape]
+# Escape sequences in strings (\n, \t, etc)
+fg = "#AC8D58"  # Brownish/Gold
+
+[styles.string.special]
+# Special strings (e.g., symbols)
+fg = "#92D192"  # Greenish (like constant.other.symbol)
+
+[styles.string.regexp]
+# Regular expression literals
+fg = "#62CFCF"  # Cyan
+
+#
+# -- Type Variants --
+#
+[styles.type.builtin]
+# Built-in types (int, string, bool)
+fg = "#6AB0F3"  # Blue
+bold = true
+
+[styles.type.definition]
+# Type definitions (class, struct names etc)
+fg = "#6AB0F3"  # Blue
+
+#
+# -- Function Variants --
+#
+[styles.function.definition]
+# Function definitions (the name itself) - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.function.call]
+# Function calls - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.function.builtin]
+# Built-in functions (len, make, print etc) - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.function.method]
+# Method definitions - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.function.method.call]
+# Method calls (.to_string()) - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.function.macro]
+# Macro invocations (Rust !, C preprocessor) - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+#
+# -- Variable Variants --
+#
+[styles.variable.member]
+# Structure/class members/properties
+fg = "#abb2bf"  # Mid Gray (Property Alt color)
+
+[styles.variable.parameter]
+# Function parameters
+fg = "#848991"  # Gray
+
+[styles.variable.builtin]
+# Built-in variables (this, self, etc)
+fg = "#ffeea6"  # Light Yellow (like `this`)
+
+#
+# -- Punctuation --
+#
+[styles.punctuation]
+# Generic punctuation
+fg = "#d5d8df"  # Light Gray/Off-white
+
+[styles.punctuation.bracket]
+# Brackets (), [], {}
+fg = "#d5d8df"  # Light Gray/Off-white
+
+[styles.punctuation.delimiter]
+# Delimiters (comma, semicolon, ::)
+fg = "#d5d8df"  # Light Gray/Off-white
+
+[styles.punctuation.special]
+# Special punctuation (e.g., template literals ${}, string interpolation)
+fg = "#777c85"  # Darker Gray (like template expression punctuation)
+
+#
+# -- Keyword Variants --
+#
+[styles.keyword.function]
+# Function definition keywords (func, def, fn)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.type]
+# Type-related keywords (struct, class, type, interface, enum)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.operator]
+# Keywords that are operators (typeof, instanceof, as, is)
+fg = "#AC8D58"  # Brownish/Gold
+
+[styles.keyword.storage]
+# Storage keywords (var, const, let, static, pub)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.import]
+# Import/include/use keywords
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control]
+# Generic control flow keywords
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control.flow]
+# Flow control (break, continue)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control.return]
+# Return statements
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control.yield]
+# Yield statements
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control.import]
+# Import-specific control (from)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control.exception]
+# Exception handling (try, catch, throw, finally)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control.context]
+# Context managers (with in Python)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control.conditional]
+# Conditionals (if, else, switch, match)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control.repeat]
+# Loops (for, while, do, loop)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control.concurrent]
+# Concurrency keywords (go, select, async, await)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.control.defer]
+# Deferred execution (defer)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.conditional]
+# General conditionals (fallback)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.conditional.ternary]
+# Ternary operators (? :)
+fg = "#AC8D58"  # Brownish/Gold (Operator color)
+
+[styles.keyword.repeat]
+# Loop keywords (fallback)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.directive]
+# Compiler directives (#include, #define, shebang)
+fg = "#777c85"  # Darker Gray (Comment color)
+
+[styles.keyword.modifier]
+# Modifiers (public, static, abstract, final, etc)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.coroutine]
+# Async/await keywords
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.exception]
+# Exception keywords (throw, raise)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.keyword.debug]
+# Debug-related keywords
+fg = "#f2777a"  # Reddish
+
+#
+# -- Operator Variants --
+#
+[styles.operator.logical]
+# Logical operators (and, or, not, &&, ||, !)
+fg = "#AC8D58"  # Brownish/Gold
+
+#
+# -- Constants & Special Values --
+#
+[styles.constant.builtin]
+# Built-in constants (true, false, nil, null, None)
+fg = "#E1A6F2"  # Magenta/Purple
+
+[styles.boolean]
+# Boolean values
+fg = "#E1A6F2"  # Magenta/Purple
+
+[styles.number.float]
+# Floating point numbers
+fg = "#fca369"  # Orange
+
+[styles.character]
+# Character literals ('a')
+fg = "#92D192"  # Greenish (Treat like strings)
+
+[styles.character.special]
+# Special characters (escape sequences)
+fg = "#AC8D58"  # Brownish/Gold
+
+#
+# -- Other Elements --
+#
+[styles.module]
+# Module names - Also changed as part of namespace update
+fg = "#b3b9c5"  # Default foreground
+
+[styles.module.builtin]
+# Built-in modules - Also changed as part of namespace update
+fg = "#b3b9c5"  # Default foreground
+
+[styles.constructor]
+# Constructor functions/methods - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.attribute]
+# Attributes/decorators (@, #[], derive) - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.attribute.builtin]
+# Built-in attributes - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.comment.documentation]
+# Documentation comments (///, /** */, etc.)
+fg = "#777c85"  # Darker Gray
+italic = true
+
+#
+# -- Legacy/Fallback Styles --
+#
+# These are included for backward compatibility
+#
+[styles.control]
+# Generic control keywords (fallback)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.builtin]
+# Built-in items (fallback) - Use constant color
+fg = "#E1A6F2"  # Magenta/Purple
+
+[styles.import]
+# Import paths (fallback)
+fg = "#92D192"  # Greenish
+
+[styles.escape]
+# Escape sequences (fallback)
+fg = "#AC8D58"  # Brownish/Gold
+
+[styles.repeat]
+# Loop constructs (fallback)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.conditional]
+# Conditionals (fallback)
+fg = "#ffeea6"  # Light Yellow
+
+[styles.definition]
+# Definitions (fallback) - Use function color - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.call]
+# Function calls (fallback) - CHANGED
+fg = "#b3b9c5"  # Default foreground
+
+[styles.member]
+# Object members (fallback)
+fg = "#abb2bf"  # Mid Gray (Property Alt color)
+

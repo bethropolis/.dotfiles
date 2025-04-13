@@ -1,0 +1,106 @@
+name = "New Moon"
+is_dark = true
+
+[styles]
+  [styles.Default]
+    fg = "#b3b9c5"
+    bg = "#2d2d2d"
+  [styles.SearchHighlight]
+    fg = "#ffd479"
+    bg = "#101010"
+  [styles.Selection]
+    fg = "#b3b9c5"
+    bg = "#444444"
+  [styles.StatusBar]
+    fg = "#909090"
+    bg = "#202020"
+  [styles.StatusBarFind]
+    fg = "#92d192"
+    bg = "#202020"
+    bold = true
+  [styles.StatusBarMessage]
+    fg = "#b3b9c5"
+    bg = "#202020"
+    bold = true
+  [styles.StatusBarModified]
+    fg = "#ffd479"
+    bg = "#202020"
+  [styles.attribute]
+    fg = "#b3b9c5"
+    bg = "#2d2d2d"
+  [styles.boolean]
+    fg = "#e1a6f2"
+    bg = "#2d2d2d"
+  [styles.builtin]
+    fg = "#e1a6f2"
+    bg = "#2d2d2d"
+  [styles.call]
+    fg = "#b3b9c5"
+    bg = "#2d2d2d"
+  [styles.character]
+    fg = "#92d192"
+    bg = "#2d2d2d"
+  [styles.comment]
+    fg = "#777c85"
+    bg = "#2d2d2d"
+    italic = true
+  [styles.conditional]
+    fg = "#ffeea6"
+    bg = "#2d2d2d"
+  [styles.constant]
+    fg = "#e1a6f2"
+    bg = "#2d2d2d"
+  [styles.constructor]
+    fg = "#b3b9c5"
+    bg = "#2d2d2d"
+  [styles.control]
+    fg = "#ffeea6"
+    bg = "#2d2d2d"
+  [styles.definition]
+    fg = "#b3b9c5"
+    bg = "#2d2d2d"
+  [styles.escape]
+    fg = "#ac8d58"
+    bg = "#2d2d2d"
+  [styles.function]
+    fg = "#b3b9c5"
+    bg = "#2d2d2d"
+  [styles.import]
+    fg = "#92d192"
+    bg = "#2d2d2d"
+  [styles.keyword]
+    fg = "#ffeea6"
+    bg = "#2d2d2d"
+  [styles.label]
+    fg = "#b3b9c5"
+    bg = "#2d2d2d"
+  [styles.member]
+    fg = "#abb2bf"
+    bg = "#2d2d2d"
+  [styles.module]
+    fg = "#b3b9c5"
+    bg = "#2d2d2d"
+  [styles.namespace]
+    fg = "#b3b9c5"
+    bg = "#2d2d2d"
+  [styles.number]
+    fg = "#fca369"
+    bg = "#2d2d2d"
+  [styles.operator]
+    fg = "#ac8d58"
+    bg = "#2d2d2d"
+  [styles.punctuation]
+    fg = "#d5d8df"
+    bg = "#2d2d2d"
+  [styles.repeat]
+    fg = "#ffeea6"
+    bg = "#2d2d2d"
+  [styles.string]
+    fg = "#92d192"
+    bg = "#2d2d2d"
+  [styles.type]
+    fg = "#6ab0f3"
+    bg = "#2d2d2d"
+  [styles.variable]
+    fg = "#f2777a"
+    bg = "#2d2d2d"

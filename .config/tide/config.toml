@@ -1,0 +1,7 @@
+[plugins]
+  # Configuration for the AutoSave plugin
+  [plugins.autosave]
+  # Set to true to enable automatic saving
+  enabled = true
+  # Interval between save checks (e.g., "30s", "1m", "5m")
+  interval = "3s"

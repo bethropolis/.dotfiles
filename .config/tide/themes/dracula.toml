@@ -1,0 +1,441 @@
+#
+# Tide Editor Theme - Dracula
+# Based on the official Dracula color palette
+#
+
+# Theme Metadata
+name = "Dracula"
+is_dark = true
+
+[styles]
+# Dracula Palette (for reference)
+# Background: "#282a36"
+# Current Line: "#44475a"
+# Foreground: "#f8f8f2"
+# Comment: "#6272a4"
+# Cyan: "#8be9fd"
+# Green: "#50fa7b"
+# Orange: "#ffb86c"
+# Pink: "#ff79c6"
+# Purple: "#bd93f9"
+# Red: "#ff5555"
+# Yellow: "#f1fa8c"
+
+#
+# -- UI Elements --
+#
+[styles.Default]
+# Base style for all text
+fg = "#f8f8f2"  # Foreground
+bg = "#282a36"  # Background
+
+[styles.Selection]
+# Text selection highlight
+fg = "#f8f8f2"  # Foreground
+bg = "#44475a"  # Current Line
+# Dracula doesn't typically reverse selection
+# reverse = false
+
+[styles.SearchHighlight]
+# Search result highlights
+fg = "#282a36"  # Background (for contrast on orange)
+bg = "#ffb86c"  # Orange
+
+[styles.StatusBar]
+# Status bar at bottom of screen
+fg = "#f8f8f2"  # Foreground
+bg = "#282a36"  # Background
+
+[styles.StatusBarModified]
+# Modified indicator in status bar
+fg = "#f1fa8c"  # Yellow
+bg = "#282a36"  # Background
+
+[styles.StatusBarMessage]
+# Messages in status bar
+fg = "#f8f8f2"  # Foreground
+bg = "#282a36"  # Background
+bold = true
+
+[styles.StatusBarFind]
+# Find text prefix in status bar
+fg = "#50fa7b"  # Green
+bg = "#282a36"  # Background
+bold = true
+
+#
+# -- Basic Syntax Elements --
+#
+[styles.keyword]
+# Keywords (if, else, func, etc)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.string]
+# String literals
+fg = "#f1fa8c"  # Yellow
+
+[styles.comment]
+# Comments
+fg = "#6272a4"  # Comment
+italic = true
+
+[styles.number]
+# Numeric literals
+fg = "#bd93f9"  # Purple
+
+[styles.type]
+# Type names (classes, structs, interfaces)
+fg = "#8be9fd"  # Cyan
+italic = true
+
+[styles.function]
+# Function names
+fg = "#50fa7b"  # Green
+
+[styles.constant]
+# Constants (true, false, nil, user-defined constants)
+fg = "#bd93f9"  # Purple
+
+[styles.variable]
+# Variable names
+fg = "#f8f8f2"  # Foreground
+
+[styles.operator]
+# Operators (+, -, *, /, etc)
+fg = "#ff79c6"  # Pink
+
+[styles.namespace]
+# Namespaces, modules, packages
+fg = "#8be9fd"  # Cyan
+italic = true
+
+[styles.label]
+# Labels for goto statements, etc.
+fg = "#f8f8f2"  # Foreground
+
+#
+# -- String Variants --
+#
+[styles.string.import]
+# Import path strings
+fg = "#f1fa8c"  # Yellow
+
+[styles.string.escape]
+# Escape sequences in strings (\n, \t, etc)
+fg = "#ff79c6"  # Pink
+
+[styles.string.special]
+# Special strings (e.g., symbols, interpolation)
+fg = "#ff79c6"  # Pink
+
+[styles.string.regexp]
+# Regular expression literals
+fg = "#ff5555"  # Red
+
+#
+# -- Type Variants --
+#
+[styles.type.builtin]
+# Built-in types (int, string, bool)
+fg = "#8be9fd"  # Cyan
+bold = true # Often bolded
+
+[styles.type.definition]
+# Type definitions (class, struct names etc)
+fg = "#8be9fd"  # Cyan
+italic = true
+
+#
+# -- Function Variants --
+#
+[styles.function.definition]
+# Function definitions (the name itself)
+fg = "#50fa7b"  # Green
+
+[styles.function.call]
+# Function calls
+fg = "#50fa7b"  # Green
+
+[styles.function.builtin]
+# Built-in functions (len, make, print etc)
+fg = "#8be9fd"  # Cyan
+italic = true
+
+[styles.function.method]
+# Method definitions
+fg = "#50fa7b"  # Green
+
+[styles.function.method.call]
+# Method calls
+fg = "#50fa7b"  # Green
+
+[styles.function.macro]
+# Macro invocations (Rust !, C preprocessor)
+fg = "#50fa7b"  # Green (Treat like functions)
+
+#
+# -- Variable Variants --
+#
+[styles.variable.member]
+# Structure/class members/properties
+fg = "#f8f8f2"  # Foreground (Dracula often keeps members neutral, sometimes Orange #ffb86c)
+# fg = "#ffb86c" # Orange (Alternative)
+
+[styles.variable.parameter]
+# Function parameters
+fg = "#ffb86c"  # Orange
+italic = true
+
+[styles.variable.builtin]
+# Built-in variables (this, self, etc)
+fg = "#bd93f9"  # Purple
+
+#
+# -- Punctuation --
+#
+[styles.punctuation]
+# Generic punctuation
+fg = "#f8f8f2"  # Foreground
+
+[styles.punctuation.bracket]
+# Brackets (), [], {}
+fg = "#f8f8f2"  # Foreground
+
+[styles.punctuation.delimiter]
+# Delimiters (comma, semicolon, etc)
+fg = "#f8f8f2"  # Foreground
+
+[styles.punctuation.special]
+# Special punctuation (e.g., template literals ${}, string interpolation)
+fg = "#ff79c6"  # Pink
+
+#
+# -- Keyword Variants --
+#
+[styles.keyword.function]
+# Function definition keywords (func, def, fn)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.type]
+# Type-related keywords (struct, class, type, interface, enum)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.operator]
+# Keywords that are operators (typeof, instanceof, as, is)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.storage]
+# Storage keywords (var, const, let, static, pub)
+fg = "#ff79c6"  # Pink
+bold = true # Often bolded
+italic = true # Sometimes italicized too
+
+[styles.keyword.import]
+# Import/include/use keywords
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control]
+# Generic control flow keywords
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control.flow]
+# Flow control (break, continue)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control.return]
+# Return statements
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control.yield]
+# Yield statements
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control.import]
+# Import-specific control (from)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control.exception]
+# Exception handling (try, catch, throw, finally)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control.context]
+# Context managers (with in Python)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control.conditional]
+# Conditionals (if, else, switch, match)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control.repeat]
+# Loops (for, while, do, loop)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control.concurrent]
+# Concurrency keywords (go, select, async, await)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.control.defer]
+# Deferred execution (defer)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.conditional]
+# General conditionals (fallback)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.conditional.ternary]
+# Ternary operators (? :)
+fg = "#ff79c6"  # Pink
+
+[styles.keyword.repeat]
+# Loop keywords (fallback)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.directive]
+# Compiler directives (#include, #define, shebang)
+fg = "#bd93f9"  # Purple
+# fg = "#6272a4" # Comment (Alternative for shebang)
+
+[styles.keyword.modifier]
+# Modifiers (public, static, abstract, final, etc)
+fg = "#ff79c6"  # Pink
+italic = true # Often italicized
+
+[styles.keyword.coroutine]
+# Async/await keywords
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.exception]
+# Exception keywords (throw, raise)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.keyword.debug]
+# Debug-related keywords
+fg = "#ff5555"  # Red
+
+#
+# -- Operator Variants --
+#
+[styles.operator.logical]
+# Logical operators (and, or, not, &&, ||, !)
+fg = "#ff79c6"  # Pink
+
+#
+# -- Constants & Special Values --
+#
+[styles.constant.builtin]
+# Built-in constants (true, false, nil, null, None)
+fg = "#bd93f9"  # Purple
+
+[styles.boolean]
+# Boolean values
+fg = "#bd93f9"  # Purple
+
+[styles.number.float]
+# Floating point numbers
+fg = "#bd93f9"  # Purple
+
+[styles.character]
+# Character literals ('a')
+fg = "#f1fa8c"  # Yellow (Treat like strings)
+
+[styles.character.special]
+# Special characters (escape sequences)
+fg = "#ff79c6"  # Pink
+
+#
+# -- Other Elements --
+#
+[styles.module]
+# Module names
+fg = "#8be9fd"  # Cyan
+italic = true
+
+[styles.module.builtin]
+# Built-in modules
+fg = "#8be9fd"  # Cyan
+italic = true
+
+[styles.constructor]
+# Constructor functions/methods
+fg = "#50fa7b"  # Green (Treat like functions)
+
+[styles.attribute]
+# Attributes/decorators (@, #[], etc.)
+fg = "#50fa7b"  # Green
+italic = true
+
+[styles.attribute.builtin]
+# Built-in attributes
+fg = "#8be9fd"  # Cyan
+italic = true
+
+[styles.comment.documentation]
+# Documentation comments (///, /** */, etc.)
+fg = "#6272a4"  # Comment
+italic = true
+
+#
+# -- Legacy/Fallback Styles --
+#
+# These are included for backward compatibility
+#
+[styles.control]
+# Generic control keywords (fallback)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.builtin]
+# Built-in items (fallback) - Use built-in function color
+fg = "#8be9fd"  # Cyan
+italic = true
+
+[styles.import]
+# Import paths (fallback)
+fg = "#f1fa8c"  # Yellow
+
+[styles.escape]
+# Escape sequences (fallback)
+fg = "#ff79c6"  # Pink
+
+[styles.repeat]
+# Loop constructs (fallback)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.conditional]
+# Conditionals (fallback)
+fg = "#ff79c6"  # Pink
+bold = true
+
+[styles.definition]
+# Definitions (fallback) - Use function color
+fg = "#50fa7b"  # Green
+
+[styles.call]
+# Function calls (fallback)
+fg = "#50fa7b"  # Green
+
+[styles.member]
+# Object members (fallback)
+fg = "#f8f8f2"  # Foreground
+# fg = "#ffb86c" # Orange (Alternative)

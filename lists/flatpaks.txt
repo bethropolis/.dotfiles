@@ -21,6 +21,7 @@ dev.lapce.lapce
 dev.qwery.AddWater
 dev.vencord.Vesktop
 dev.zed.Zed
+eu.jumplink.Learn6502
 io.anytype.anytype
 io.github.josephmawa.Egghead
 io.github.josephmawa.TextCompare

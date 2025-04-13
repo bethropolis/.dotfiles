@@ -1,0 +1,50 @@
+# Crimson Red Theme for Tide Editor
+name = "Crimson Red"
+is_dark = true
+
+[styles]
+    # UI Elements
+    Default = { fg = "#FFD0D0", bg = "#380000" }
+    Selection = { bg = "#801515" }
+    SearchHighlight = { fg = "#000000", bg = "#FF8080" }
+    StatusBar = { fg = "#FFFFFF", bg = "#600000" }
+    StatusBarModified = { fg = "#FFA0A0", bold = true }
+    StatusBarMessage = { fg = "#FFFFFF", bold = true }
+    StatusBarFind = { fg = "#FFC0C0", bold = true }
+    
+    # Syntax Highlighting
+    keyword = { fg = "#FF9090", bold = true }
+    string = { fg = "#FFC0C0" }
+    comment = { fg = "#AA5555", italic = true }
+    number = { fg = "#FF7070" }
+    type = { fg = "#FFAAAA", bold = true }
+    function = { fg = "#FFB0B0" }
+    constant = { fg = "#FF8080" }
+    variable = { fg = "#FFD0D0" }
+    operator = { fg = "#FFBBBB" }
+    namespace = { fg = "#FFAAAA" }
+    label = { fg = "#FFD0D0" }
+    punctuation = { fg = "#AA6060" }
+    
+    # Specific subtypes
+    "string.escape" = { fg = "#FF60A0" }
+    "string.import" = { fg = "#FFC0C0" }
+    "type.builtin" = { fg = "#FFAAAA", bold = true }
+    "function.definition" = { fg = "#FFB0B0", bold = true }
+    "function.call" = { fg = "#FFB0B0" }
+    "function.builtin" = { fg = "#FF8080", italic = true }
+    "variable.member" = { fg = "#FF7070" }
+    "variable.parameter" = { fg = "#FFD0D0", italic = true }
+    "variable.builtin" = { fg = "#FF7070" }
+    
+    # Control flow
+    "keyword.control" = { fg = "#FF9090", bold = true }
+    "keyword.control.flow" = { fg = "#FF9090", bold = true }
+    "keyword.control.return" = { fg = "#FF9090", bold = true }
+    "keyword.control.import" = { fg = "#FF9090", bold = true }
+    
+    # Operators and punctuation
+    "punctuation.bracket" = { fg = "#AA6060" }
+    "punctuation.delimiter" = { fg = "#AA6060" }
+    "operator.logical" = { fg = "#FFBBBB" }
+

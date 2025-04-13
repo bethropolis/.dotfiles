@@ -70,6 +70,7 @@ alias fishrc="nv $HOME/.config/fish/config.fish"
 alias frc="fishrc"
 alias src="source $HOME/.config/fish/config.fish"
 alias gs="git status"
+alias kondo="~/Programs/kondo/kondo"
 alias dots="cd $DOTFILES"
 alias cls="clear"
 alias neofetch="fastfetch"
@@ -80,6 +81,7 @@ alias vlc="flatpak run org.videolan.VLC"
 alias clap="flatpak run com.github.rafostar.Clapper"
 alias anime="bash $HOME/.config/anime/anime.sh -o eng -r 720 -a"
 alias yeet='sudo dnf remove'
+alias update='sudo dnf update -y'
 
 # Custom function to source fish config (equivalent to source bashrc)
 function reload_fish
@@ -89,4 +91,3 @@ end
 
 
 # initial scripts and patches
-killall gnome-software >/dev/null &

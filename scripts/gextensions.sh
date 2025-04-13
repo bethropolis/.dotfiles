@@ -206,7 +206,7 @@ install_extensions() {
       zip_file="$CACHE_DIR/$uuid.zip"
 
       # Install the extension
-      if gnome-extensions install "$zip_file" &>/tmp/gnome_ext_install; then
+      if sudo gnome-extensions install "$zip_file" &>/tmp/gnome_ext_install; then
         success=$((success + 1))
         echo -e "${GREEN}✓ Successfully installed ${BOLD}$extension_name${NC}"
 

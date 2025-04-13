@@ -1,0 +1,32 @@
+name = "Ocean Blue"
+is_dark = true
+
+[styles]
+    # UI Elements
+    Default = { fg = "#E0E0E0", bg = "#0F2D44" }
+    Selection = { bg = "#1E5984" }
+    SearchHighlight = { fg = "#0F2D44", bg = "#FFD700" }
+    StatusBar = { fg = "#E0E0E0", bg = "#0A1922" }
+    StatusBarModified = { fg = "#FFD700", bold = true }
+    StatusBarMessage = { fg = "#FFFFFF", bold = true }
+    StatusBarFind = { fg = "#7CFC00", bold = true }
+    
+    # Syntax Highlighting
+    keyword = { fg = "#569CD6", bold = true }
+    string = { fg = "#CE9178" }
+    comment = { fg = "#6A9955", italic = true }
+    number = { fg = "#B5CEA8" }
+    type = { fg = "#4EC9B0" }
+    function = { fg = "#DCDCAA" }
+    constant = { fg = "#B5CEA8" }
+    variable = { fg = "#9CDCFE" }
+    operator = { fg = "#D4D4D4" }
+    namespace = { fg = "#4EC9B0" }
+    label = { fg = "#E0E0E0" }
+    punctuation = { fg = "#D4D4D4" }
+    
+    # Specific subtypes
+    "string.escape" = { fg = "#D7BA7D" }
+    "type.builtin" = { fg = "#4EC9B0", bold = true }
+    "function.builtin" = { fg = "#DCDCAA", italic = true }
+    "variable.member" = { fg = "#4FC1FF" }

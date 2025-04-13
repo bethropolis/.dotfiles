@@ -1,6 +1,5 @@
 blur-my-shell@aunetx:Blur my Shell
 Vitals@CoreCoding.com:Vitals
-quick-settings-avatar@d-go:User Avatar In Quick Settings
 dash-to-dock@micxgx.gmail.com:Dash to Dock
 gnome-ui-tune@itstime.tech:Gnome 4x UI Improvements
 compiz-windows-effect@hermes83.github.com:Compiz windows effect
