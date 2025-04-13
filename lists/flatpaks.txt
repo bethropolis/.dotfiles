@@ -7,7 +7,6 @@ com.github.marhkb.Pods
 com.github.neithern.g4music
 com.github.rafostar.Clapper
 com.github.tchx84.Flatseal
-com.google.AndroidStudio
 com.mattjakeman.ExtensionManager
 com.notesnook.Notesnook
 com.play0ad.zeroad
@@ -29,6 +28,7 @@ io.github.nokse22.inspector
 io.github.realmazharhussain.GdmSettings
 io.github.swordpuffin.wardrobe
 io.github.voidforce.qsprawl
+io.gitlab.theevilskeleton.Upscaler
 io.missioncenter.MissionCenter
 io.podman_desktop.PodmanDesktop
 it.fabiodistasio.AntaresSQL
