@@ -286,61 +286,102 @@ download_source() {
 get_episode_link() {
     # $1: episode number
     local num="$1"
-    local session_id play_page_content stream_buttons final_link play_url
+    local session_id play_page_content buttons_html final_link play_url
+    local filtered_buttons button_data # For filtering
 
     print_info "  Looking up session ID for episode ${BOLD}$num${NC}..."
-    # Use --argjson for robust number comparison, check for empty result
     session_id=$("$_JQ" -r --argjson num "$num" '.data[] | select(.episode == $num) | .session // empty' < "$_VIDEO_DIR_PATH/$_ANIME_NAME/$_SOURCE_FILE")
     if [[ -z "$session_id" ]]; then
         print_warn "Episode $num session ID not found in source file!"
         return 1
     fi
-    # print_info "    Found session ID: $session_id" # Optional verbose log
 
     play_url="${_HOST}/play/${_ANIME_SLUG}/${session_id}"
     print_info "  Fetching play page to find stream sources: ${BOLD}$play_url${NC}"
-    # Add Referer header, as it might be required by the play page
     play_page_content=$("$_CURL" --compressed -sSL --fail -H "cookie: $_COOKIE" -H "Referer: $_REFERER_URL" "$play_url")
     if [[ $? -ne 0 || -z "$play_page_content" ]]; then
         print_warn "Failed to fetch play page content for episode $num."
-        # Consider adding curl exit code to the warning
         return 1
     fi
-    # Debug log: Save play page content if debug mode is enabled
     [[ -n "${_DEBUG_MODE:-}" ]] && echo "$play_page_content" > "$_VIDEO_DIR_PATH/$_ANIME_NAME/play_page_${num}.html"
 
     print_info "  Extracting stream options from play page..."
-    # Extract all button data-src attributes. Use grep -oP if available for robustness.
-    if command -v grep &>/dev/null && grep -oP '(?<=data-src=")[^"]*' <<< "$play_page_content" &>/dev/null; then
-         mapfile -t stream_buttons < <(grep -oP '(?<=data-src=")[^"]*' <<< "$play_page_content")
-    else
-        # Fallback using sed (might be less robust if HTML attributes change order)
-        mapfile -t stream_buttons < <(echo "$play_page_content" | sed -n 's/.*data-src="\([^"]*\)".*/\\1/p')
-    fi
-
-    if [[ ${#stream_buttons[@]} -eq 0 ]]; then
-        print_warn "No stream links (data-src) found on play page for episode $num."
-        # Debug log: Show beginning of play page if no links found
-        [[ -n "${_DEBUG_MODE:-}" ]] && print_info "Play page snippet (first 20 lines):\\n$(echo "$play_page_content" | head -n 20)"
+    # --- CHANGE: Extract full button tags for filtering ---
+    # Get button tags containing data-src and data-av1="0"
+    buttons_html=$(echo "$play_page_content" | grep '<button' | grep 'data-src' | grep 'data-av1="0"')
+    if [[ -z "$buttons_html" ]]; then
+        print_warn "No suitable stream buttons (non-AV1) found on play page for episode $num."
         return 1
     fi
-    print_info "    Found ${#stream_buttons[@]} potential stream sources."
+    # Count lines to estimate number of buttons
+    local button_count
+    button_count=$(echo "$buttons_html" | wc -l)
+    print_info "    Found ${button_count} potential stream options."
 
-    # --- Filtering Logic (Placeholder/Simplification) ---
-    # TODO: Implement robust filtering based on data-audio, data-resolution attributes if needed.
-    # This would require extracting the full button tags and parsing attributes.
-    # For now, just select the last link found, assuming it's often the highest quality.
-    final_link="${stream_buttons[-1]}" # Select the last URL from the list
+    # --- RESTORED/IMPROVED Filtering Logic ---
+    filtered_buttons="$buttons_html" # Start with all buttons
+
+    # 1. Filter by Audio Language (_ANIME_AUDIO / -o)
+    if [[ -n "${_ANIME_AUDIO:-}" ]]; then
+        print_info "  Filtering for audio language: ${BOLD}${_ANIME_AUDIO}${NC}"
+        local audio_filtered
+        audio_filtered=$(echo "$filtered_buttons" | grep "data-audio=\"${_ANIME_AUDIO}\"")
+        if [[ -z "$audio_filtered" ]]; then
+            print_warn "Selected audio language '${_ANIME_AUDIO}' not available. Proceeding without audio filter."
+            # Keep $filtered_buttons as is
+        else
+            print_info "    ${GREEN}✓ Audio language found.${NC}"
+            filtered_buttons="$audio_filtered" # Update the set of buttons
+        fi
+    fi
+
+    # 2. Filter by Resolution (_ANIME_RESOLUTION / -r)
+    if [[ -n "${_ANIME_RESOLUTION:-}" ]]; then
+        print_info "  Filtering for resolution: ${BOLD}${_ANIME_RESOLUTION}p${NC}"
+        local res_filtered
+        res_filtered=$(echo "$filtered_buttons" | grep "data-resolution=\"${_ANIME_RESOLUTION}\"")
+        if [[ -z "$res_filtered" ]]; then
+             print_warn "Selected resolution '${_ANIME_RESOLUTION}p' not available with current filters."
+             # Keep $filtered_buttons as is, will fallback to highest below
+        else
+            print_info "    ${GREEN}✓ Resolution found.${NC}"
+            filtered_buttons="$res_filtered" # Update the set of buttons
+        fi
+    fi
+
+    # 3. Select the best link from the *remaining* filtered buttons
+    # Use awk with match() for more robust attribute parsing
+    # Extract resolution and src, then sort numerically by resolution (highest first)
+    final_link=$(echo "$filtered_buttons" \
+                 | awk '{
+                        src = ""; res = "";
+                        if (match($0, /data-src="([^"]*)"/, arr_src)) { src = arr_src[1]; }
+                        if (match($0, /data-resolution="([^"]*)"/, arr_res)) { res = arr_res[1]; }
+                        if (src && res) { print res, src; } # Print resolution first for sorting
+                    }' \
+                 | sort -k1,1nr \
+                 | head -n 1 \
+                 | awk '{print $2}') # Extract the URL (second field) after sorting
+
+    # Fallback if the match()/sort logic still fails for some reason
+    if [[ -z "$final_link" ]]; then
+        print_warn "Could not find link via primary method. Attempting simple fallback (last button)."
+        # Extract data-src from the last button line using sed
+        final_link=$(echo "$filtered_buttons" | tail -n 1 | sed -n 's/.*data-src="\([^"]*\)".*/\1/p')
+    fi
 
     if [[ -z "$final_link" ]]; then
-        # This case should ideally not be reached if stream_buttons was populated, but check anyway.
-        print_warn "Could not determine a final stream URL after extraction."
+        print_warn "Could not determine a final stream URL after filtering and fallbacks."
         return 1
     fi
 
-    # print_info "    Selected stream URL: $final_link" # Optional verbose log
-    echo "$final_link" # Output the final link (e.g., the kwik URL)
-    return 0 # Indicate success
+    local final_res final_audio # Extract details of the selected link for logging
+    final_res=$(echo "$filtered_buttons" | grep -F "data-src=\"$final_link\"" | head -n 1 | sed -n 's/.*data-resolution="\([^"]*\)".*/\1/p')
+    final_audio=$(echo "$filtered_buttons" | grep -F "data-src=\"$final_link\"" | head -n 1 | sed -n 's/.*data-audio="\([^"]*\)".*/\1/p')
+
+    print_info "    Selected stream (Res: ${final_res:-N/A}p, Audio: ${final_audio:-N/A}): ${BOLD}$final_link${NC}"
+    echo "$final_link" # Output the final link
+    return 0
 }
 
 get_playlist_link() {
