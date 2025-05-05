@@ -69,11 +69,14 @@ cleanup() {
     # Also check /tmp just in case mktemp defaulted there (unlikely with current script but safe)
     find /tmp -maxdepth 1 -type d -name "$tmp_pattern" -prune -exec rm -rf {} + 2>/dev/null
 }
+
+# run cleanup on exit or interrupt
 trap cleanup EXIT SIGINT SIGTERM
 
 # --- Helper Functions ---
 usage() {
-    printf "%b\n" "$(grep '^#/' "$0" | cut -c4-)" && exit 1
+    # $0: script name
+    printf "%b\n" "$(grep '^#/' "$0" | cut -c4-)" && exit 1 
 }
 
 print_info() {
@@ -286,8 +289,8 @@ download_source() {
 get_episode_link() {
     # $1: episode number
     local num="$1"
-    local session_id play_page_content buttons_html final_link play_url
-    local filtered_buttons button_data # For filtering
+    local session_id play_page_content play_url
+    local all_options
 
     print_info "  Looking up session ID for episode ${BOLD}$num${NC}..."
     session_id=$("$_JQ" -r --argjson num "$num" '.data[] | select(.episode == $num) | .session // empty' < "$_VIDEO_DIR_PATH/$_ANIME_NAME/$_SOURCE_FILE")
@@ -306,78 +309,93 @@ get_episode_link() {
     [[ -n "${_DEBUG_MODE:-}" ]] && echo "$play_page_content" > "$_VIDEO_DIR_PATH/$_ANIME_NAME/play_page_${num}.html"
 
     print_info "  Extracting stream options from play page..."
-    # --- CHANGE: Extract full button tags for filtering ---
-    # Get button tags containing data-src and data-av1="0"
-    buttons_html=$(echo "$play_page_content" | grep '<button' | grep 'data-src' | grep 'data-av1="0"')
-    if [[ -z "$buttons_html" ]]; then
-        print_warn "No suitable stream buttons (non-AV1) found on play page for episode $num."
+    # --- NEW PARSING LOGIC ---
+    # Use awk to parse all relevant non-av1 buttons into structured lines: resolution audio src
+    all_options=$(echo "$play_page_content" \
+                  | grep '<button' | grep 'data-src' | grep 'data-av1="0"' \
+                  | awk -F'"' '{
+                        res=""; aud=""; src="";
+                        for(i=1; i<=NF; i++) {
+                            if($i == " data-resolution=") res=$(i+1);
+                            if($i == " data-audio=") aud=$(i+1);
+                            if($i == " data-src=") src=$(i+1);
+                        }
+                        if(res && aud && src) print res, aud, src;
+                    }')
+
+    if [[ -z "$all_options" ]]; then
+        print_warn "No suitable stream options (non-AV1) found on play page for episode $num."
         return 1
     fi
-    # Count lines to estimate number of buttons
-    local button_count
-    button_count=$(echo "$buttons_html" | wc -l)
-    print_info "    Found ${button_count} potential stream options."
+    local option_count
+    option_count=$(echo "$all_options" | wc -l)
+    print_info "    Found ${option_count} potential stream options."
 
-    # --- RESTORED/IMPROVED Filtering Logic ---
-    filtered_buttons="$buttons_html" # Start with all buttons
+    # --- NEW FILTERING & SELECTION LOGIC ---
+    local candidates="$all_options"
 
     # 1. Filter by Audio Language (_ANIME_AUDIO / -o)
     if [[ -n "${_ANIME_AUDIO:-}" ]]; then
         print_info "  Filtering for audio language: ${BOLD}${_ANIME_AUDIO}${NC}"
         local audio_filtered
-        audio_filtered=$(echo "$filtered_buttons" | grep "data-audio=\"${_ANIME_AUDIO}\"")
+        # Use awk for filtering the structured data
+        audio_filtered=$(echo "$candidates" | awk -v aud="$_ANIME_AUDIO" '$2 == aud')
         if [[ -z "$audio_filtered" ]]; then
             print_warn "Selected audio language '${_ANIME_AUDIO}' not available. Proceeding without audio filter."
-            # Keep $filtered_buttons as is
+            # Keep $candidates as is
         else
-            print_info "    ${GREEN}✓ Audio language found.${NC}"
-            filtered_buttons="$audio_filtered" # Update the set of buttons
+            print_info "    ${GREEN}✓ Audio language filter applied.${NC}"
+            candidates="$audio_filtered" # Update the set of candidates
         fi
     fi
 
-    # 2. Filter by Resolution (_ANIME_RESOLUTION / -r)
+    # 2. Filter by Resolution (_ANIME_RESOLUTION / -r) OR Select Best Available
+    local final_choice=""
     if [[ -n "${_ANIME_RESOLUTION:-}" ]]; then
-        print_info "  Filtering for resolution: ${BOLD}${_ANIME_RESOLUTION}p${NC}"
+        print_info "  Attempting to select resolution: ${BOLD}${_ANIME_RESOLUTION}p${NC}"
         local res_filtered
-        res_filtered=$(echo "$filtered_buttons" | grep "data-resolution=\"${_ANIME_RESOLUTION}\"")
+        # Use awk to filter the remaining candidates by resolution
+        res_filtered=$(echo "$candidates" | awk -v res="$_ANIME_RESOLUTION" '$1 == res')
+
         if [[ -z "$res_filtered" ]]; then
-             print_warn "Selected resolution '${_ANIME_RESOLUTION}p' not available with current filters."
-             # Keep $filtered_buttons as is, will fallback to highest below
+            print_warn "Selected resolution '${_ANIME_RESOLUTION}p' not available with current filters."
+            # Fallthrough to select the best available from $candidates
         else
-            print_info "    ${GREEN}✓ Resolution found.${NC}"
-            filtered_buttons="$res_filtered" # Update the set of buttons
+            print_info "    ${GREEN}✓ Specific resolution found.${NC}"
+            # Since resolution was specified and found, take the first match
+            # (should only be one if audio was also specified and matched)
+            final_choice=$(echo "$res_filtered" | head -n 1)
         fi
     fi
 
-    # 3. Select the best link from the *remaining* filtered buttons
-    # Use awk with match() for more robust attribute parsing
-    # Extract resolution and src, then sort numerically by resolution (highest first)
-    final_link=$(echo "$filtered_buttons" \
-                 | awk '{
-                        src = ""; res = "";
-                        if (match($0, /data-src="([^"]*)"/, arr_src)) { src = arr_src[1]; }
-                        if (match($0, /data-resolution="([^"]*)"/, arr_res)) { res = arr_res[1]; }
-                        if (src && res) { print res, src; } # Print resolution first for sorting
-                    }' \
-                 | sort -k1,1nr \
-                 | head -n 1 \
-                 | awk '{print $2}') # Extract the URL (second field) after sorting
-
-    # Fallback if the match()/sort logic still fails for some reason
-    if [[ -z "$final_link" ]]; then
-        print_warn "Could not find link via primary method. Attempting simple fallback (last button)."
-        # Extract data-src from the last button line using sed
-        final_link=$(echo "$filtered_buttons" | tail -n 1 | sed -n 's/.*data-src="\([^"]*\)".*/\1/p')
+    # 3. If no specific resolution was chosen yet, select the highest available
+    if [[ -z "$final_choice" ]]; then
+        if [[ -z "$candidates" ]]; then
+             # This happens if filtering removed all options
+             print_warn "No stream options remain after filtering."
+             return 1
+        fi
+        print_info "  Selecting highest available resolution from remaining candidates..."
+        # Sort remaining candidates numerically descending by resolution (field 1)
+        # and take the first one
+        final_choice=$(echo "$candidates" | sort -k1,1nr | head -n 1)
     fi
 
-    if [[ -z "$final_link" ]]; then
-        print_warn "Could not determine a final stream URL after filtering and fallbacks."
+    # 4. Extract data from the final chosen line
+    if [[ -z "$final_choice" ]]; then
+        print_warn "Could not determine a final stream URL."
         return 1
     fi
 
-    local final_res final_audio # Extract details of the selected link for logging
-    final_res=$(echo "$filtered_buttons" | grep -F "data-src=\"$final_link\"" | head -n 1 | sed -n 's/.*data-resolution="\([^"]*\)".*/\1/p')
-    final_audio=$(echo "$filtered_buttons" | grep -F "data-src=\"$final_link\"" | head -n 1 | sed -n 's/.*data-audio="\([^"]*\)".*/\1/p')
+    # Use read to parse the chosen line (res aud src)
+    local final_res final_audio final_link
+    read -r final_res final_audio final_link <<< "$final_choice"
+
+    if [[ -z "$final_link" ]]; then
+        # Should not happen if final_choice was set, but check anyway
+        print_warn "Failed to extract final URL from chosen option: [$final_choice]"
+        return 1
+    fi
 
     print_info "    Selected stream (Res: ${final_res:-N/A}p, Audio: ${final_audio:-N/A}): ${BOLD}$final_link${NC}"
     echo "$final_link" # Output the final link
@@ -391,7 +409,7 @@ get_playlist_link() {
 
     print_info "    Fetching stream page: ${BOLD}${stream_link}${NC}"
     s="$("$_CURL" --compressed -sS -H "Referer: $_REFERER_URL" -H "cookie: $_COOKIE" "$stream_link")"
-    if [[ $? -ne 0 ]]; then print_error "Failed to get stream page content from $stream_link"; return 1; fi
+    if [[ $? -ne 0 ]]; then print_warn "Failed to get stream page content from $stream_link"; return 1; fi
 
     print_info "    Extracting packed Javascript..."
     s="$(echo "$s" \
@@ -402,7 +420,7 @@ get_playlist_link() {
         | sed -E 's/document/process/g' \
         | sed -E 's/querySelector/exit/g' \
         | sed -E 's/eval\(/console.log\(/g')"
-    if [[ -z "$s" ]]; then print_error "Could not extract packed JS block from stream page."; return 1; fi
+    if [[ -z "$s" ]]; then print_warn "Could not extract packed JS block from stream page."; return 1; fi
 
     print_info "    Executing JS with Node to find m3u8 URL..."
     l="$("$_NODE" -e "$s" 2>/dev/null \
@@ -411,7 +429,7 @@ get_playlist_link() {
         | sed -E "s/.m3u8['\"].*/.m3u8/" \
         | sed -E "s/.*['\"](https:.*)/\1/")" # More robust extraction
 
-    if [[ -z "$l" || "$l" != *.m3u8 ]]; then print_error "Failed to extract m3u8 link using Node.js."; return 1; fi
+    if [[ -z "$l" || "$l" != *.m3u8 ]]; then print_warn "Failed to extract m3u8 link using Node.js."; return 1; fi
 
     print_info "    ${GREEN}✓ Found playlist URL.${NC}"
     echo "$l"
@@ -465,7 +483,7 @@ download_file() {
         delay=$((delay * 2)) # Exponential backoff
     done
 
-    print_error "Download failed after $max_retries attempts for $filename ($url)"
+    print_warn "Download failed after $max_retries attempts for $filename ($url)"
     rm -f "$outfile" # Ensure cleanup on final failure
     return 1 # Indicate failure
 }
@@ -482,7 +500,7 @@ decrypt_file() {
     local openssl_output
     openssl_output=$("$_OPENSSL" aes-128-cbc -d -K "$key_hex" -iv 0 -in "$encrypted_file" -out "$of" 2>&1)
     if [[ $? -ne 0 ]]; then
-        print_error "Openssl decryption failed for $encrypted_file: $openssl_output"
+        pprint_warn "Openssl decryption failed for $(basename "$encrypted_file"): $openssl_output"
         rm -f "$of" # Remove potentially corrupt output file
         return 1
     fi
@@ -495,47 +513,59 @@ decrypt_segments() {
     local playlist_file="$1" segment_path="$2" threads="$3"
     local kf kl k encrypted_files=() total_encrypted xargs_status decrypted_count
 
-    kf="${segment_path}/mon.key"
+    kf="${segment_path}/mon.key" # Define key file path
+
+    print_info "  Checking playlist for encryption key..."
+    # --- MODIFICATION START ---
+    # Extract the key URI FIRST
     kl=$(grep "#EXT-X-KEY:METHOD=AES-128" "$playlist_file" | head -n 1 | awk -F 'URI="' '{print $2}' | awk -F '"' '{print $1}')
 
-    # Check if encryption is actually used
+    # Check if encryption is actually used BEFORE trying to download the key
     if [[ -z "$kl" ]]; then
         print_info "  Playlist indicates stream is not encrypted (No AES-128 key URI found). Skipping decryption."
-        # Check if any .encrypted files exist unexpectedly?
-        mapfile -t encrypted_files < <(find "$segment_path" -maxdepth 1 -name '*.encrypted' -print)
+        # Optional: Check if any .encrypted files exist unexpectedly
+        mapfile -t encrypted_files < <(find "$segment_path" -maxdepth 1 -name '*.encrypted' -print 2>/dev/null) # Avoid error if none found
         if [[ ${#encrypted_files[@]} -gt 0 ]]; then
-             print_warn "Playlist shows no encryption, but *.encrypted files found! Check playlist/downloads."
+             print_warn "    Playlist shows no encryption, but ${#encrypted_files[@]} *.encrypted files found! Check playlist/downloads."
              # Decide whether to proceed or error out. Let's proceed but warn.
         fi
         return 0 # Success (nothing to decrypt)
     fi
 
-    print_info "  Stream appears encrypted. Downloading key..."
-    download_file "$kl" "$kf" || { print_error "Failed to download encryption key: $kl"; return 1; }
-    k="$(od -A n -t x1 "$kf" | tr -d ' \n')"
-    if [[ -z "$k" ]]; then print_error "Failed to extract encryption key hex from $kf"; rm -f "$kf"; return 1; fi
+    # --- If we reach here, kl is NOT empty ---
+    print_info "  Stream appears encrypted. Downloading key: ${BOLD}$kl${NC}"
+    download_file "$kl" "$kf" || { print_warn "Failed to download encryption key for this episode: $kl"; return 1; } # Use warn + return 1
 
-    # Find encrypted files
+    # Extract the key hex
+    k="$(od -A n -t x1 "$kf" | tr -d ' \n')"
+    if [[ -z "$k" ]]; then
+        print_warn "Failed to extract encryption key hex for this episode from $kf" # Use warn
+        rm -f "$kf" # Clean up useless key file
+        return 1 # Return failure
+    fi
+    # --- MODIFICATION END ---
+
+
+    # Find encrypted files (This part remains the same)
     mapfile -t encrypted_files < <(find "$segment_path" -maxdepth 1 -name '*.encrypted' -print)
     total_encrypted=${#encrypted_files[@]}
 
     if [[ $total_encrypted -eq 0 ]]; then
-        # This case should ideally not happen if kl was found, but check anyway
+        # This case means playlist specified a key, but download_segments didn't create .encrypted files (or they were removed)
         print_warn "No *.encrypted files found to decrypt in $segment_path, although playlist specified a key."
-        rm -f "$kf" # Clean up key file
+        rm -f "$kf" # Clean up key file as it's not needed
         return 0 # Consider it success as there's nothing to do
     fi
 
-    # --- UPDATED Info Message ---
+    # --- Decryption Logic (remains the same) ---
     print_info "  Decrypting ${BOLD}$total_encrypted${NC} segments using ${BOLD}$threads${NC} thread(s)..."
-    export _OPENSSL k segment_path # segment_path might not be needed if decrypt_file is robust
-    export -f decrypt_file print_error print_warn print_info # Export needed functions
+    export _OPENSSL k segment_path
+    export -f decrypt_file print_error print_warn print_info # Ensure needed functions/vars are exported
 
-    # --- ADDED pv for progress --- Pipe the list through pv in line mode (-l)
     printf '%s\n' "${encrypted_files[@]}" \
     | "$_PV" -l -s "$total_encrypted" -N "Decrypting Segments " \
     | xargs -I {} -P "$threads" \
-        bash -c 'decrypt_file "{}" "$k" || exit 255'
+        bash -c 'decrypt_file "{}" "$k" || exit 255' # decrypt_file now uses print_warn and returns 1 on failure
 
     xargs_status=${PIPESTATUS[1]} # Get xargs status
     if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
@@ -543,25 +573,23 @@ decrypt_segments() {
     fi
 
     if [[ $xargs_status -ne 0 ]]; then
-        print_error "Segment decryption process failed (xargs status $xargs_status). Check logs."
-        # Count how many were successfully decrypted
+        print_warn "Segment decryption process failed for this episode (xargs status $xargs_status). Check logs." # Changed to warn
         decrypted_count=$(find "$segment_path" -maxdepth 1 -type f ! -name '*.encrypted' ! -name 'mon.key' ! -name 'playlist.m3u8' ! -name 'file.list' | wc -l)
         print_warn "  Attempted: ${total_encrypted}, Successfully decrypted: ${decrypted_count}"
         # Keep key and encrypted files in debug mode? Trap should handle cleanup otherwise.
-        if [[ -z "${_DEBUG_MODE:-}" ]]; then rm -f "$kf"; fi
-        return 1
+        if [[ -z "${_DEBUG_MODE:-}" ]]; then rm -f "$kf"; fi # Clean up key on failure if not debugging
+        return 1 # Return failure
     fi
 
-    # Verify count after success
+    # Verify count after success (remains the same)
     decrypted_count=$(find "$segment_path" -maxdepth 1 -type f ! -name '*.encrypted' ! -name 'mon.key' ! -name 'playlist.m3u8' ! -name 'file.list' | wc -l)
     if [[ $total_encrypted -ne $decrypted_count ]]; then
         print_warn "Number of decrypted files ($decrypted_count) does not match number of encrypted files ($total_encrypted)."
-        # This shouldn't happen if xargs reported success, but good sanity check
     fi
 
     print_info "  ${GREEN}✓ Decryption phase complete.${NC}"
 
-    # Cleanup key and encrypted files if not in debug mode
+    # Cleanup key and encrypted files if not in debug mode (remains the same)
     if [[ -z "${_DEBUG_MODE:-}" ]]; then
         print_info "  Cleaning up key file and encrypted segments..."
         rm -f "$kf"
@@ -573,41 +601,58 @@ decrypt_segments() {
 download_segments() {
     local playlist_file="$1" opath="$2" threads="$3"
     local segment_urls=()
+    local xargs_status=0 # Initialize status
 
     mapfile -t segment_urls < <(grep "^https" "$playlist_file")
     local total_segments=${#segment_urls[@]}
     if [[ $total_segments -eq 0 ]]; then
-        print_error "No segment URLs found in playlist: $playlist_file"
+        # Changed to warn, but this is unlikely if playlist download succeeded
+        print_warn "No segment URLs found in playlist for this episode: $playlist_file"
         return 1
     fi
-    # --- UPDATED Info Message ---
     print_info "  Downloading ${BOLD}$total_segments${NC} segments using ${BOLD}$threads${NC} thread(s)."
 
     export _CURL _REFERER_URL opath _PV
+    # Ensure download_file uses print_warn and returns 1 on persistent failure
     export -f download_file print_info print_warn print_error
 
-    # --- ADDED pv for progress --- Pipe the list through pv in line mode (-l)
     printf '%s\n' "${segment_urls[@]}" \
     | "$_PV" -l -s "$total_segments" -N "Downloading Segments" \
     | xargs -I {} -P "$threads" \
-        bash -c 'url="{}"; file="${url##*/}.encrypted"; download_file "$url" "${opath}/${file}" || exit 255'
+        bash -c 'url="{}"; file="${url##*/}.encrypted"; download_file "$url" "${opath}/${file}" || exit 255' # Crucial || exit 255
 
-    local xargs_status=${PIPESTATUS[1]} # Get exit status of xargs (second command in pipe)
-    # Check pv status too? PIPESTATUS[0]
-    if [[ ${PIPESTATUS[0]} -ne 0 ]]; then
-        print_warn "PV command for download progress exited non-zero: ${PIPESTATUS[0]}"
-        # Continue if xargs was ok? Or fail?
+    # Capture PIPESTATUS correctly
+    local pipe_statuses=("${PIPESTATUS[@]}")
+    local pv_status=${pipe_statuses[0]}
+    xargs_status=${pipe_statuses[1]} # Get exit status of xargs
+
+    if [[ $pv_status -ne 0 ]]; then
+        # This is just a warning about the progress bar itself
+        print_warn "PV command for download progress exited non-zero: $pv_status"
     fi
 
+    # --- THIS IS THE KEY CHECK ---
     if [[ $xargs_status -ne 0 ]]; then
-        print_error "Segment download process failed (xargs status $xargs_status). Check logs for specific file errors."
+        # Use print_warn, NOT print_error
+        print_warn "Segment download process failed for this episode (xargs status $xargs_status). One or more segments likely failed."
         local downloaded_count
-        downloaded_count=$(find "$opath" -maxdepth 1 -name '*.encrypted' -print | wc -l)
-        print_warn "  Expected: ${total_segments}, Downloaded: ${downloaded_count}"
+        # Count actual files created
+        downloaded_count=$(find "$opath" -maxdepth 1 -name '*.encrypted' -print 2>/dev/null | wc -l)
+        print_warn "  Expected: ${total_segments}, Actually Downloaded: ${downloaded_count}"
+        # --- CRITICAL: Return 1 ---
         return 1
     fi
 
-    # --- UPDATED Success Message ---
+    # --- Check if count matches (optional but good sanity check) ---
+    local final_download_count
+    final_download_count=$(find "$opath" -maxdepth 1 -name '*.encrypted' -print 2>/dev/null | wc -l)
+    if [[ "$final_download_count" -ne "$total_segments" ]]; then
+         print_warn "Segment count mismatch after download. Expected $total_segments, found $final_download_count. Proceeding, but concatenation might fail."
+         # Decide if this should be a hard failure (return 1) or just a warning.
+         # Let's make it a warning for now, as generate_filelist will catch missing files later.
+    fi
+
+
     print_info "  ${GREEN}✓ Segment download phase complete.${NC}"
     return 0
 }
@@ -622,29 +667,40 @@ generate_filelist() {
     # Modify segment URLs from playlist to point to *decrypted* local files
     grep "^https" "$playlist_file" \
         | sed -E "s/^https.*\///" \
+        | sed -E "s/(\.ts|\.jpg|\.mp4|\.m4s)[^']*$/\1/" \
         | sed -E "s/^/file '/" \
         | sed -E "s/$/'/" \
         > "$outfile"
 
+    # Check if file list was created and is not empty
     if [[ ! -s "$outfile" ]]; then
-        print_error "Failed to generate or generated empty file list: $outfile"
+        # Use print_warn
+        print_warn "Failed to generate or generated empty file list for this episode: $outfile"
+        # --- CRITICAL: Return 1 ---
         return 1
     fi
 
     # Verify that the files listed actually exist (decrypted)
     local missing_files=0
+    local missing_list=() # Optional: list missing files
     while IFS= read -r line; do
         # Extract filename: remove "file '" prefix and "'" suffix
         local segment_file="${line#file \'}"
         segment_file="${segment_file%\'}"
         if [[ ! -f "${opath}/${segment_file}" ]]; then
-             print_warn "    File listed in $outfile not found: ${segment_file}"
+             # This warning is okay per file
+             print_warn "    File listed in $(basename "$outfile") not found: ${segment_file}"
              missing_files=$((missing_files + 1))
+             # missing_list+=("$segment_file") # Uncomment to collect list
         fi
     done < "$outfile"
 
+    # Check the total count of missing files
     if [[ $missing_files -gt 0 ]]; then
-        print_error "$missing_files segment files listed in $outfile are missing on disk!"
+        # Use print_warn for the summary, NOT print_error
+        print_warn "$missing_files segment file(s) listed in $(basename "$outfile") are missing on disk for this episode!"
+        # Optionally print the list: [[ ${#missing_list[@]} -gt 0 ]] && print_warn "    Missing: ${missing_list[*]}"
+        # --- CRITICAL: Return 1 ---
         return 1
     fi
 
@@ -660,6 +716,7 @@ download_episode() {
     local pl # m3u8 playlist link
     local erropt='' # ffmpeg error level option
     local opath plist cpath fname threads # Temporary directory variables
+    local retval=0 # Track success/failure
 
     # Define target path early for checking existence
     v="$_VIDEO_DIR_PATH/$_ANIME_NAME/${num}.mp4"
@@ -672,14 +729,14 @@ download_episode() {
 
     # --- Get Links ---
     print_info "Processing Episode ${BOLD}$num${NC}:"
-    l=$(get_episode_link "$num")
+    l=$(get_episode_link "$num") || return 1
     if [[ $? -ne 0 ]]; then # Check exit code from get_episode_link
         print_warn "Could not get download link for episode ${BOLD}$num${NC}. Skipping."
         return 1 # Failure for this episode
     fi
     print_info "  Found stream page link: ${BOLD}$l${NC}"
 
-    pl=$(get_playlist_link "$l")
+    pl=$(get_playlist_link "$l") || return 1
     if [[ $? -ne 0 ]]; then # Check exit code from get_playlist_link
         print_warn "Could not get playlist URL for episode ${BOLD}$num${NC}. Skipping."
         return 1 # Failure
@@ -703,7 +760,7 @@ download_episode() {
     # Pattern: ep<num>_pid<pid>_XXXXXX
     opath=$("$_MKTEMP" -d "$_VIDEO_DIR_PATH/$_ANIME_NAME/ep${num}_${$}_XXXXXX")
     if [[ ! -d "$opath" ]]; then
-        print_error "Failed to create temporary directory: Check permissions and path."
+        print_warn "Failed to create temporary directory for episode $num: Check permissions and path."
         return 1
     fi
     print_info "  Created temporary directory: ${BOLD}$opath${NC}"
@@ -711,66 +768,86 @@ download_episode() {
 
     # --- Download & Process Segments ---
     print_info "  Downloading master playlist..."
-    download_file "$pl" "$plist" || { print_error "Failed to download playlist $pl"; return 1; } # Trap cleans up opath
+    download_file "$pl" "$plist" || retval=1
+
 
     threads="$_PARALLEL_JOBS" # Use the user-specified thread count directly
 
     # Use sub-phases for clarity
-    print_info "  ${CYAN}--- Segment Download Phase ---${NC}"
-    download_segments "$plist" "$opath" "$threads" || { print_error "Segment download failed."; return 1; }
+   if [[ $retval -eq 0 ]]; then
+        print_info "  ${CYAN}--- Segment Download Phase ---${NC}"
+        download_segments "$plist" "$opath" "$_PARALLEL_JOBS" || retval=1
+    fi
 
-    print_info "  ${CYAN}--- Segment Decryption Phase ---${NC}"
-    decrypt_segments "$plist" "$opath" "$threads" || { print_error "Segment decryption failed."; return 1; }
+   if [[ $retval -eq 0 ]]; then
+        print_info "  ${CYAN}--- Segment Decryption Phase ---${NC}"
+        decrypt_segments "$plist" "$opath" "$_PARALLEL_JOBS" || retval=1
+    fi
 
-    print_info "  ${CYAN}--- File List Generation ---${NC}"
-    generate_filelist "$plist" "${opath}/$fname" || { print_error "File list generation failed."; return 1; }
+    if [[ $retval -eq 0 ]]; then
+        print_info "  ${CYAN}--- File List Generation ---${NC}"
+        generate_filelist "$plist" "${opath}/$fname" || retval=1
+    fi
 
     # --- Concatenate ---
-    print_info "  ${CYAN}--- Concatenation Phase ---${NC}"
-    # Use a subshell to avoid changing the main script's directory
-    (
-        cd "$opath" || { print_error "Cannot change directory to temporary path: $opath"; exit 1; } # Exit subshell on cd failure
-        print_info "  Running ffmpeg to combine segments into ${BOLD}$v${NC} ..."
+    if [[ $retval -eq 0 ]]; then
+        print_info "  ${CYAN}--- Concatenation Phase ---${NC}"
+        # Use a subshell to avoid changing the main script's directory
+        (
+            cd "$opath" || { print_error "Cannot change directory to temporary path: $opath"; exit 1; } # Exit subshell on cd failure
+            print_info "  Running ffmpeg to combine segments into ${BOLD}$v${NC} ..."
 
-        local ffmpeg_output
-        # Run ffmpeg, capture stderr for potential error messages
-        ffmpeg_output=$("$_FFMPEG" -f concat -safe 0 -i "$fname" -c copy $erropt -y "$v" 2>&1)
-        local ffmpeg_status=$?
+            local ffmpeg_output
+            # Run ffmpeg, capture stderr for potential error messages
+            # Simpler: just check the exit status directly
+            if ! ffmpeg_output=$("$_FFMPEG" -f concat -safe 0 -i "$fname" -c copy $erropt -y "$v" 2>&1); then
+                # Use print_warn, not print_error
+                print_warn "ffmpeg concatenation failed for episode $num." >&2
+                print_info "ffmpeg output:" >&2
+                echo "$ffmpeg_output" | sed 's/^/    /' >&2
+                exit 1 # Exit the subshell with failure status
+            fi
+            # Success within subshell
+            exit 0
+        ) # End of subshell
 
-        if [[ $ffmpeg_status -ne 0 ]]; then
-            # Error messages need to be printed to the main script's stderr
-            print_error "ffmpeg concatenation failed for episode $num (Code: $ffmpeg_status)." >&2
-            print_info "ffmpeg output:" >&2
-            echo "$ffmpeg_output" | sed 's/^/    /' >&2 # Indent ffmpeg output
-            # Signal failure to the outer script by exiting the subshell with non-zero status
-            exit 1
+        local subshell_status=$? # Capture subshell exit status
+
+        # Check if the subshell failed
+        if [[ $subshell_status -ne 0 ]]; then
+            retval=1
+            print_warn "ffmpeg concatenation failed for episode $num." 
+            rm -f "$v" # Remove potentially incomplete file
         fi
-        # Success within subshell
-        exit 0
-    ) # End of subshell
-
-    local subshell_status=$? # Capture subshell exit status
-
-    # Check if the subshell failed
-    if [[ $subshell_status -ne 0 ]]; then
-        rm -f "$v" # Remove potentially incomplete file
-        # Temp dir cleaned by trap unless in debug mode
-        if [[ -n "${_DEBUG_MODE:-}" ]]; then print_warn "Debug mode: Leaving temporary directory: $opath"; fi
-        return 1 # Propagate failure
     fi
 
-    # If subshell succeeded:
-    print_info "${GREEN}✓ Successfully downloaded and assembled Episode ${BOLD}$num${NC} to ${BOLD}$v${NC}"
+     # --- Cleanup and Return ---
+    if [[ $retval -ne 0 ]]; then
+        print_warn "Episode ${BOLD}$num${NC} processing failed. Cleaning up."
+       
+        # --- Explicit Cleanup on Success --- (if not in debug mode)
+        if [[ -z "${_DEBUG_MODE:-}" ]]; then
+            print_info "  Cleaning up temporary directory: ${BOLD}$opath${NC}"
+            rm -rf "$opath"
+        else
+            print_warn "Debug mode: Leaving temporary directory: ${BOLD}$opath${NC}"
+        fi
 
-    # --- Explicit Cleanup on Success --- (if not in debug mode)
-    if [[ -z "${_DEBUG_MODE:-}" ]]; then
-        print_info "  Cleaning up temporary directory: ${BOLD}$opath${NC}"
-        rm -rf "$opath"
+        rm -f "$v" # Remove the output file if it exists
+        return 1 # Failure for this episode
     else
-        print_warn "Debug mode: Leaving temporary directory: ${BOLD}$opath${NC}"
+        print_info "${GREEN}✓ Successfully downloaded and assembled Episode ${BOLD}$num${NC} to ${BOLD}$v${NC}"
+        
+        # --- Explicit Cleanup on Success --- (if not in debug mode)
+        if [[ -z "${_DEBUG_MODE:-}" ]]; then
+            print_info "  Cleaning up temporary directory: ${BOLD}$opath${NC}"
+            rm -rf "$opath"
+        else
+            print_warn "Debug mode: Leaving temporary directory: ${BOLD}$opath${NC}"
+        fi
+        return 0 # Signal success
     fi
-
-    return 0 # Success for this episode
+ 
 }
 
 # --- Episode Selection / Parsing ---
@@ -802,12 +879,9 @@ select_episodes_to_download() {
 }
 
 download_episodes() {
-    # $1: episode number string (e.g., "1,3-5,!10,L3,*,-2")
     local ep_string="$1"
-    # Remove leading/trailing double quotes from the input string
-    ep_string="${ep_string#\"}"
-    ep_string="${ep_string%\"}"
-
+    local any_failures=0  # Track if any episode fails
+    # $1: episode number string (e.g., "1,3-5,!10,L3,*,-2")
     local source_path="$_VIDEO_DIR_PATH/$_ANIME_NAME/$_SOURCE_FILE"
     local all_available_eps=() include_list=() exclude_list=() final_list=()
     local total_selected=0 success_count=0 fail_count=0
@@ -966,7 +1040,12 @@ download_episodes() {
 
     # Get unique sorted lists
     mapfile -t unique_includes < <(printf '%s\n' "${include_list[@]}" | sort -n -u)
-    mapfile -t unique_excludes < <(printf '%s\n' "${exclude_list[@]}" | sort -n -u)
+     
+    if [[ ${#exclude_list[@]} -eq 0 ]]; then
+        unique_excludes=()
+    else
+        mapfile -t unique_excludes < <(printf '%s\n' "${exclude_list[@]}" | sort -n -u)
+    fi
 
     print_info "  Found ${#unique_includes[@]} unique include episodes and ${#unique_excludes[@]} exclude episodes."
 
@@ -1008,12 +1087,16 @@ download_episodes() {
         current_ep_num=$((current_ep_num + 1))
         # Add blank line before header
         echo
-        echo -e "${PURPLE}-------------------- [ Episode ${e} (${current_ep_num}/${total_selected}) ] --------------------${NC}"
+        echo -e "${PURPLE}-------------------- [ Processing Episode ${e} (${current_ep_num}/${total_selected}) ] --------------------${NC}"
+
+        # Call download_episode and check its return status explicitly
         if download_episode "$e"; then
             success_count=$((success_count + 1))
         else
+            # download_episode failed (returned non-zero)
             fail_count=$((fail_count + 1))
-            # Warning already printed by download_episode on failure
+            any_failures=1
+            print_warn "Episode ${BOLD}${e}${NC} failed to process fully. Skipping to the next episode."
         fi
     done
 
@@ -1029,6 +1112,9 @@ download_episodes() {
     # Add blank line after summary
     echo
     echo -e "${GREEN}✓ All tasks completed!${NC}"
+
+    # OPTIONAL: return 0 if all succeeded, 1 if any failures
+    # return $any_failures
 }
 
 # --- Name / Slug Helpers ---
