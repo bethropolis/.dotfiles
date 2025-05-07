@@ -57,6 +57,7 @@ end
 
 # My aliases
 alias cd="z"
+alias b="cd -"
 alias op="xdg-open"
 alias nv="nvim"
 alias bashrc="nv $HOME/.bashrc"
@@ -75,6 +76,7 @@ alias clap="flatpak run com.github.rafostar.Clapper"
 alias zed="flatpak run dev.zed.Zed"
 alias anime="bash $HOME/.config/anime/anime.sh -t 10 -T 300 -o eng -r 1080 -a"
 alias yeet='sudo dnf remove'
+alias install="sudo dnf install -y"
 alias update='sudo dnf update -y'
 alias tx="toolbox enter"
 

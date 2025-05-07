@@ -60,6 +60,8 @@ fi
 _SCRIPT_NAME="$(basename "$0")"
 _ANIME_NAME="unknown_anime" # Default, will be overwritten
 _SEGMENT_TIMEOUT=""         # Default timeout is disabled
+_ALLOW_NOTIFICATION=true    # Allow notifications by default
+_NOTIFICATION_URG="normal" # Default notification urgency
 
 # --- Trap Function ---
 cleanup() {
@@ -114,6 +116,7 @@ set_var() {
   fi
   _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
   _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
+  _NOTIFICATION_CMD="$(command -v notify-send)" || command_not_found "notify-send"
   # Check for GNU Parallel
   _PARALLEL="$(command -v parallel)" || command_not_found "parallel (GNU Parallel)"
   _MKTEMP="$(command -v mktemp)" || command_not_found "mktemp"
@@ -184,6 +187,25 @@ set_cookie() {
   u="$(LC_ALL=C tr -dc 'a-zA-Z0-9' </dev/urandom | head -c 16)"
   _COOKIE="__ddg2_=$u"
   print_info "Set temporary session cookie."
+}
+
+set_title() {
+  # $1: title
+  local title="$1"
+  # \033]0;…\007  → ESC ]0; … BEL
+  printf "\033]0;%s\007" "$title"
+}
+
+send_notification() {
+  # $1: Title
+  # $2: Body message
+  # $3: Urgency (low, normal, critical) - optional, defaults to normal
+  
+  local title="${1}"
+  local body="${2}"
+  local urgency="${3:-$_NOTIFICATION_URG}"
+  
+  "$_NOTIFICATION_CMD" -u "$urgency" -i "folder-download-symbolic"  -a "animepahe downloader" "$title" "$body"
 }
 
 download_anime_list() {
@@ -799,8 +821,10 @@ download_episode() {
     return 0   # Success for this mode
   fi
 
-  # --- Prepare for Download ---
+  # --- Prepare for Download ---  
+  set_title "⏳ $_ANIME_NAME - Episode $num" # Set terminal title
   print_info "Starting download process for Episode ${BOLD}$num${NC}..."
+
   [[ -z "${_DEBUG_MODE:-}" ]] && erropt="-v error"
 
   fname="file.list"
@@ -837,6 +861,7 @@ download_episode() {
 
   # The rest of the function proceeds based on the 'retval' flag
   if [[ $retval -eq 0 ]]; then
+    set_title "🔑  $_ANIME_NAME - Episode $num - Decrypting"
     print_info "  ${CYAN}--- Segment Decryption Phase ---${NC}"
     # Pass threads explicitly as it's used for parallel decryption jobs
     decrypt_segments "$plist" "$opath" "$threads" || retval=1
@@ -849,6 +874,7 @@ download_episode() {
 
   # --- Concatenate ---
   if [[ $retval -eq 0 ]]; then
+    set_title "🔗  $_ANIME_NAME - Episode $num - Concatenating"
     print_info "  ${CYAN}--- Concatenation Phase ---${NC}"
     ( # Start Subshell
       cd "$opath" || {
@@ -889,6 +915,7 @@ download_episode() {
     rm -f "$v" # Ensure target file is removed on failure
     return 1   # Signal failure for THIS episode
   else
+    set_title "✅  $_ANIME_NAME - Episode $num - Finished"
     print_info "${GREEN}✓ Successfully downloaded and assembled Episode ${BOLD}$num${NC} to ${BOLD}$v${NC}"
     if [[ -d "$opath" ]]; then # Check if temp dir exists
       if [[ -z "${_DEBUG_MODE:-}" ]]; then
@@ -910,6 +937,12 @@ select_episodes_to_download() {
 
   if [[ "$ep_count" -eq 0 ]]; then
     print_error "No episode data found in $source_path!"
+  fi
+
+  if [[ "$ep_count" -eq 1 ]]; then
+    print_info "Only one episode available, selecting it."
+    echo "1" # Return selection
+    return 0
   fi
 
   print_info "Available episodes for ${BOLD}$_ANIME_NAME${NC}:"
@@ -1178,6 +1211,15 @@ download_episodes() {
   echo
   echo -e "${GREEN}✓ All tasks completed!${NC}"
 
+
+
+  # --- Optional Notification ---
+  # Check if _ALLOW_NOTIFICATION vAriable is set TO true
+  if [[ "${_ALLOW_NOTIFICATION:-false}" == "true" ]]; then
+    "$_NOTIFICATION_CMD"  "Download complete: $_ANIME_NAME " "Success: $success_count Failed: $fail_count"
+  fi
+
+
   # Exit with non-zero status if any episode failed
   exit $any_failures
 }
@@ -1305,6 +1347,7 @@ main() {
   # Use the final exit status logic
   download_episodes "$_ANIME_EPISODE"
 
+  
 }
 
 # --- Script Entry Point ---
