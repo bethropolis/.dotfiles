@@ -27,6 +27,7 @@ SPECIAL_DIRS=(
   ".config"
   ".local/share"
   ".local/bin"
+  ".config/nvim"  # Nvim lua directory for plugins
   # Add more directories here as needed
 )
 
@@ -99,8 +100,31 @@ is_special_dir() {
   local relative_path="${check_path#$DOTFILES_DIR/}"
 
   for dir in "${SPECIAL_DIRS[@]}"; do
+    # Exact match
     if [ "$relative_path" = "$dir" ]; then
       return 0
+    fi
+    
+    # Check if this is a parent of a nested special directory
+    # For example, .config is a parent of .config/nvim/lua
+    if [[ "$dir" == "$relative_path/"* ]]; then
+      return 0
+    fi
+    
+    # Check if this is a nested special directory itself
+    if [[ "$relative_path" == "$dir"/* ]]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+# Check if a path is an exact match in SPECIAL_DIRS list
+is_exactly_special_dir() {
+  local path_to_check="$1"
+  for sd in "${SPECIAL_DIRS[@]}"; do
+    if [ "$path_to_check" = "$sd" ]; then
+      return 0 # It is an exact match
     fi
   done
   return 1
@@ -211,56 +235,61 @@ create_symlink() {
   success "Created symlink: $target -> $source"
 }
 
-# Install contents of a special directory
-install_special_dir() {
-  local source_dir="$1"
-  local base_dir="$2"
-
-  info "Setting up symlinks for special directory: $source_dir"
-
-  # Create base directory if it doesn't exist
-  mkdir -p "$base_dir" || die "Failed to create directory: $base_dir"
-
-  # Process all items in the source directory
-  if [ -d "$source_dir" ]; then
-    for item in "$source_dir"/*; do
-      if [ -e "$item" ]; then
-        local base_name=$(basename "$item")
-        local target="$base_dir/$base_name"
-        create_symlink "$item" "$target"
-      fi
-    done
-  else
-    warn "Directory not found in dotfiles: $source_dir"
-  fi
-}
-
 # Install all dotfiles
 install_dotfiles() {
   info "Installing dotfiles..."
 
-  # First, handle special directories
-  for special_dir in "${SPECIAL_DIRS[@]}"; do
-    local source_dir="$DOTFILES_DIR/$special_dir"
-    local target_dir="$HOME_DIR/$special_dir"
-    if [ -d "$source_dir" ]; then
-      install_special_dir "$source_dir" "$target_dir"
-    fi
+  # First, ensure all directories listed in SPECIAL_DIRS exist in $HOME
+  # This creates the target special directories like $HOME/.config and $HOME/.config/nvim
+  for sd_rel_path in "${SPECIAL_DIRS[@]}"; do
+    local dst_sd_path="$HOME_DIR/$sd_rel_path"
+    # mkdir -p will create parent directories as needed and won't error if they exist
+    mkdir -p "$dst_sd_path" || die "Failed to create special directory structure: $dst_sd_path"
+    # You could add an info message here if desired, e.g.:
+    # info "Ensured special directory structure exists: $dst_sd_path"
   done
 
-  # Then handle all other files and directories in the root
-  for item in "$DOTFILES_DIR"/*; do
-    if [ -e "$item" ]; then
-      local base_name=$(basename "$item")
-      local target="$HOME_DIR/$base_name"
+  # Pass 1: Handle contents of special directories
+  # For each directory listed in SPECIAL_DIRS, symlink its children.
+  # If a child is itself a special directory, skip it (it will be processed by this same loop).
+  for sd_rel_path in "${SPECIAL_DIRS[@]}"; do
+    local src_special_dir="$DOTFILES_DIR/$sd_rel_path"
+    local dst_special_dir="$HOME_DIR/$sd_rel_path"
 
-      # Check if this is a special directory
-      if is_special_dir "$item"; then
-        continue # Skip special directories as they're already handled
+    # Source special directory must exist in dotfiles
+    [ -d "$src_special_dir" ] || continue
+
+    info "Processing contents of special directory: $sd_rel_path"
+    for src_child_item in "$src_special_dir"/*; do
+      [ -e "$src_child_item" ] || continue # Skip if no items or item is a broken symlink
+
+      local child_basename=$(basename "$src_child_item")
+      # Construct relative path of the child from DOTFILES_DIR root, e.g., ".config/nvim" or ".config/nvim/lua"
+      local child_rel_path_from_dotfiles="$sd_rel_path/$child_basename"
+
+      # If this child item itself is listed as a SPECIAL_DIR, skip symlinking it directly.
+      # Its own entry in the SPECIAL_DIRS loop will handle its contents.
+      if is_exactly_special_dir "$child_rel_path_from_dotfiles"; then
+        info "Skipping symlink for $child_basename within $sd_rel_path; it's a special directory itself and its contents will be handled."
+        continue
       fi
 
-      create_symlink "$item" "$target"
-    fi
+      # Otherwise, symlink this child into the destination special directory
+      create_symlink "$src_child_item" "$dst_special_dir/$child_basename"
+    done
+  done
+
+  # Pass 2: Handle top-level items from DOTFILES_DIR
+  # These are items directly under DOTFILES_DIR (e.g., .bashrc, .gitconfig, or non-special dirs).
+  info "Processing top-level items..."
+  for src_top_item in "$DOTFILES_DIR"/*; do
+    [ -e "$src_top_item" ] || continue # Skip if no items or item is a broken symlink
+
+    local top_item_basename=$(basename "$src_top_item")
+    # If this top-level item is itself a special directory, its contents were handled by Pass 1. So, skip.
+    is_exactly_special_dir "$top_item_basename" && continue
+
+    create_symlink "$src_top_item" "$HOME_DIR/$top_item_basename"
   done
 }
 
