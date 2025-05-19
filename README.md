@@ -13,6 +13,7 @@ A collection of configuration files and scripts for my Linux environment. This r
 | [Fish Shell](/.config/fish/) | Configuration and custom functions                      |
 | [Kitty Terminal](/.config/kitty/) | A fast GPU-based terminal emulator                 |
 | [Ghostty Terminal](/.config/ghostty/) | Alternative terminal configuration             |
+| [Neovim](/.config/nvim/) | Modern, improved version of Vim text editor               |
 | [Conky](/.config/conky/Mimosa/) | System monitor with Mimosa theme                     |
 | [Fastfetch](/.config/fastfetch/) | Faster alternative to Neofetch                      |                                        |
 | [Flatpak Management](scripts/flatpaks.sh) | Installation and management of Flatpak apps |
@@ -64,7 +65,7 @@ Example:
 | `dots`        | Quick access to dotfiles                         |
 | `proj`        | Quick access to Projects directory               |
 | `mkcd`        | Create directory and cd into it                  |
-| `dump`        | Export installed Flatpaks and GNOME extensions to lists |
+| `dump`        | Export installed Flatpaks and GNOME extensions   |
 | `cd` (`z`)    | Use zoxide for smarter directory navigation      |
 | `nv`          | Neovim shortcut                                  |
 | `frc`         | Edit fish config                                 |
