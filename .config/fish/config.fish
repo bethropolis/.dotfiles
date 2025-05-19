@@ -7,7 +7,6 @@ set -x DOTFILES $HOME/Projects/.dotfiles/
 # User specific environment
 # Fish handles PATH differently - we use fish_add_path
 fish_add_path $HOME/.local/bin
-fish_add_path $HOME/bin
 fish_add_path $HOME/go/bin
 
 # some apps are just spitting their configs at home
@@ -30,9 +29,6 @@ function pocketbase
     $HOME/Programs/pocketbase/pocketbase serve
 end
 
-# GO Binary
-fish_add_path $HOME/go/bin
-
 # Load cargo environment if it exists
 if test -d $HOME/.cargo
     fish_add_path $HOME/.cargo/bin
@@ -43,7 +39,13 @@ if command -v starship >/dev/null
     starship init fish | source
 end
 
-zoxide init fish | source
+if command -v fzf >/dev/null
+    fzf --fish | source
+end
+
+if command -v zoxide >/dev/null
+    zoxide init fish | source
+end
 
 function mkcd
     mkdir -p $argv[1]
@@ -58,7 +60,15 @@ end
 # My aliases
 alias cd="z"
 alias b="cd -"
+alias ls="lsd"
+alias lsh="ls -lh"
+alias cat="bat"
+alias du="erd"
+alias cat="bat"
+alias grep="rg"
+alias find="fd"
 alias op="xdg-open"
+alias fzb="fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'"
 alias nv="nvim"
 alias bashrc="nv $HOME/.bashrc"
 alias brc="bashrc"
@@ -74,7 +84,8 @@ alias lg='lazygit'
 alias vlc="flatpak run org.videolan.VLC"
 alias clap="flatpak run com.github.rafostar.Clapper"
 alias zed="flatpak run dev.zed.Zed"
-alias anime="bash $HOME/.config/anime/anime.sh -t 10 -T 300 -o eng -r 1080 -a"
+alias anime="bash $HOME/.config/anime/anime.sh -t 12 -T 300 -o eng -r 1080 -a"
+alias animez="bash $HOME/.config/anime/zen-dl.sh -t 12 -T 300 -o dub -r 1080 -a"
 alias yeet='sudo dnf remove'
 alias install="sudo dnf install -y"
 alias update='sudo dnf update -y'
@@ -88,5 +99,5 @@ end
 # initial scripts and patches
 
 # bun
-set --export BUN_INSTALL "$HOME/.bun"
-set --export PATH $BUN_INSTALL/bin $PATH
+# set -gx BUN_INSTALL "$HOME/.bun"
+fish_add_path $HOME/.bun/bin
