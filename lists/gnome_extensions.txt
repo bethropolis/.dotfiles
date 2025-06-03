@@ -1,23 +1,25 @@
-blur-my-shell@aunetx:Blur my Shell
-Vitals@CoreCoding.com:Vitals
-dash-to-dock@micxgx.gmail.com:Dash to Dock
-gnome-ui-tune@itstime.tech:Gnome 4x UI Improvements
-compiz-windows-effect@hermes83.github.com:Compiz windows effect
-burn-my-windows@schneegans.github.com:Burn My Windows
-fq@megh:Force Quit
-openbar@neuromorph:Open Bar
-tiling-assistant@leleat-on-github:Tiling Assistant
-extension-list@tu.berry:Extension List
-just-perfection-desktop@just-perfection:Just Perfection
-Bluetooth-Battery-Meter@maniacx.github.com:Bluetooth Battery Meter
-media-progress@krypion17:Media Progress
-CoverflowAltTab@palatis.blogspot.com:Coverflow Alt-Tab
-notification-timeout@chlumskyvaclav.gmail.com:Notification Timeout
-quick-settings-audio-panel@rayzeq.github.io:Quick Settings Audio Panel
-clipboard-history@alexsaveau.dev:Clipboard History
-rounded-window-corners@fxgn:Rounded Window Corners Reborn
-smile-extension@mijorus.it:Smile - complementary extension
-gsconnect@andyholmes.github.io:GSConnect
-apps-menu@gnome-shell-extensions.gcampax.github.com:Apps Menu
-background-logo@fedorahosted.org:Background Logo
-places-menu@gnome-shell-extensions.gcampax.github.com:Places Status Indicator
+blur-my-shell@aunetx:
+Vitals@CoreCoding.com:
+dash-to-dock@micxgx.gmail.com:
+gnome-ui-tune@itstime.tech:
+compiz-windows-effect@hermes83.github.com:
+burn-my-windows@schneegans.github.com:
+fq@megh:
+openbar@neuromorph:
+tiling-assistant@leleat-on-github:
+extension-list@tu.berry:
+just-perfection-desktop@just-perfection:
+Bluetooth-Battery-Meter@maniacx.github.com:
+media-progress@krypion17:
+CoverflowAltTab@palatis.blogspot.com:
+notification-timeout@chlumskyvaclav.gmail.com:
+quick-settings-audio-panel@rayzeq.github.io:
+rounded-window-corners@fxgn:
+smile-extension@mijorus.it:
+gsconnect@andyholmes.github.io:
+apps-menu@gnome-shell-extensions.gcampax.github.com:
+places-menu@gnome-shell-extensions.gcampax.github.com:
+clipboard-indicator@tudmotu.com:
+appindicatorsupport@rgcjonas.gmail.com:
+open-desktop-location@laura.media:
+background-logo@fedorahosted.org:

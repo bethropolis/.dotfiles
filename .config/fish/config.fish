@@ -70,12 +70,17 @@ alias find="fd"
 alias op="xdg-open"
 alias fzb="fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'"
 alias nv="nvim"
+alias docker="podman"
 alias bashrc="nv $HOME/.bashrc"
 alias brc="bashrc"
 alias fishrc="nv $HOME/.config/fish/config.fish"
 alias frc="fishrc"
 alias src="source $HOME/.config/fish/config.fish"
 alias gs="git status"
+alias cr="cargo run"
+alias cb="cargo build"
+alias cc="cargo check"
+alias ccl="cargo clippy"
 alias dots="cd $DOTFILES"
 alias cls="clear"
 alias neofetch="fastfetch"
@@ -89,7 +94,9 @@ alias animez="bash $HOME/.config/anime/zen-dl.sh -t 12 -T 300 -o dub -r 1080 -a"
 alias yeet='sudo dnf remove'
 alias install="sudo dnf install -y"
 alias update='sudo dnf update -y'
+alias fupdate='flatpak update -y'
 alias tx="toolbox enter"
+alias q="exit"
 
 # Custom function to source fish config (equivalent to source bashrc)
 function reload_fish

@@ -3,7 +3,7 @@
 # Download anime from animepahe in terminal
 #
 #/ Usage:
-#/   ./anime.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_selection>] [-r <resolution>] [-t <num>] [-l] [-d] [-T <secs>]
+#/   ./animepahe-dl.sh [-a <anime name>] [-s <anime_slug>] [-e <episode_selection>] [-r <resolution>] [-t <num>] [-l] [-d] [-T <secs>]
 #/
 #/ Options:
 #/   -a <name>               anime name
@@ -22,8 +22,8 @@
 #/                           - Combined: "1-10,!5,L2" (1-10 except 5, plus latest 2)
 #/   -r <resolution>         optional, specify resolution: "1080", "720"...
 #/                           by default, the highest resolution is selected
-#/   -o <language>           optional, specify audio language: "eng", "jpn"...
-#/   -t <num>                optional, specify a positive integer as num of threads
+#/   -o <language>           optional, specify audio language: "eng", "jpn"
+#/   -t <num>                optional, specify a positive integer as num of threads (default: 4)
 #/   -T <secs>               optional, add timeout in seconds for individual segment download jobs.
 #/                           Requires GNU Parallel.
 #/   -l                      optional, show m3u8 playlist link without downloading videos
@@ -59,8 +59,8 @@ fi
 # --- Global Variables ---
 _SCRIPT_NAME="$(basename "$0")"
 _ANIME_NAME="unknown_anime" # Default, will be overwritten
-_SEGMENT_TIMEOUT=""         # Default timeout is disabled
-_ALLOW_NOTIFICATION=true    # Allow notifications by default
+_SEGMENT_TIMEOUT="360"         # Default timeout is disabled
+_ALLOW_NOTIFICATION="${ANIMEPAHE_DOWNLOAD_NOTIFICATION:-false}" # Allow notifications, defaults to false
 _NOTIFICATION_URG="normal" # Default notification urgency
 
 # --- Trap Function ---
@@ -81,7 +81,11 @@ trap cleanup EXIT SIGINT SIGTERM
 # --- Helper Functions ---
 usage() {
   # $0: script name
-  printf "%b\n" "$(grep '^#/' "$0" | cut -c4-)" && exit 1
+  printf "%b\n" "$(grep '^#/' "$0" | cut -c4-)"
+
+  # Unset the EXIT trap to prevent cleanup when displaying help
+  trap - EXIT
+  exit 1
 }
 
 print_info() {
@@ -109,14 +113,14 @@ set_var() {
   _CURL="$(command -v curl)" || command_not_found "curl"
   _JQ="$(command -v jq)" || command_not_found "jq"
   _FZF="$(command -v fzf)" || command_not_found "fzf"
-  if [[ -z ${ANIMEPAHE_DL_Bun:-} ]]; then
-    _BUN="$(command -v bun)" || command_not_found "Bun"
+  if [[ -z ${ANIMEPAHE_DL_NODE:-} ]]; then
+    _NODE="$(command -v node)" || command_not_found "node"
   else
-    _BUN="$ANIMEPAHE_DL_Bun"
+    _NODE="$ANIMEPAHE_DL_NODE"
   fi
   _FFMPEG="$(command -v ffmpeg)" || command_not_found "ffmpeg"
   _OPENSSL="$(command -v openssl)" || command_not_found "openssl"
-  _NOTIFICATION_CMD="$(command -v notify-send)" || command_not_found "notify-send"
+  _NOTIFICATION_CMD="$(command -v notify-send)" || print_warn "notify-send"
   # Check for GNU Parallel
   _PARALLEL="$(command -v parallel)" || command_not_found "parallel (GNU Parallel)"
   _MKTEMP="$(command -v mktemp)" || command_not_found "mktemp"
@@ -137,7 +141,7 @@ set_var() {
 
 set_args() {
   expr "$*" : ".*--help" >/dev/null && usage
-  _PARALLEL_JOBS=1                           # Default number of threads/jobs
+  _PARALLEL_JOBS=4                           # Default number of threads/jobs
   while getopts ":hlda:s:e:r:t:o:T:" opt; do # Added T:
     case $opt in
     a) _INPUT_ANIME_NAME="$OPTARG" ;;
@@ -200,11 +204,16 @@ send_notification() {
   # $1: Title
   # $2: Body message
   # $3: Urgency (low, normal, critical) - optional, defaults to normal
-  
+
+
+  if ! command -v "$_NOTIFICATION_CMD" &> /dev/null; then
+    return 0
+  fi
+
   local title="${1}"
   local body="${2}"
   local urgency="${3:-$_NOTIFICATION_URG}"
-  
+
   "$_NOTIFICATION_CMD" -u "$urgency" -i "folder-download-symbolic"  -a "animepahe downloader" "$title" "$body"
 }
 
@@ -472,15 +481,15 @@ get_playlist_link() {
     return 1
   fi
 
-  print_info "    Executing JS with Bun to find m3u8 URL..."
-  l="$("$_BUN" -e "$s" 2>/dev/null |
+  print_info "    Executing JS with node.js to find m3u8 URL..."
+  l="$("$_NODE" -e "$s" 2>/dev/null |
     grep 'source=' |
     head -n 1 |
     sed -E "s/.m3u8['\"].*/.m3u8/" |
     sed -E "s/.*['\"](https:.*)/\1/")" # More robust extraction
 
   if [[ -z "$l" || "$l" != *.m3u8 ]]; then
-    print_warn "Failed to extract m3u8 link using Bun.js."
+    print_warn "Failed to extract m3u8 link using node.js."
     return 1
   fi
 
@@ -497,14 +506,14 @@ download_file() {
   # Uses ENVIRONMENT: _CURL, _REFERER_URL, _COOKIE
 
   local url="$1"
-  local outfile="$2" # <<< USE THIS ARGUMENT DIRECTLY
+  local outfile="$2"
   local max_retries=${3:-3}
   local initial_delay=${4:-2}
   local attempt=0 delay=$initial_delay s=0
 
   # --- REMOVED THE INTERNAL PATH CONSTRUCTION BLOCK ---
 
-  # Only create a filename if outfile is empty (which it shouldn't be based on your code)
+  # Only create a filename if outfile is empty (which it shouldn't be btw)
   if [[ -z "$outfile" ]]; then
     # Use parameter expansion instead of sed for better performance
     local filename=${url##*/} # Remove everything before last /
@@ -532,13 +541,13 @@ download_file() {
         --connect-timeout 10 \
         --retry 2 --retry-delay 1 \
         --compressed \
-        -o "$outfile" # Use curl's -o option with the correct path
+        -o "$outfile"
       s=$?
     } 2>&1 >/dev/null)
 
     if [[ "$s" -eq 0 ]]; then
       if [[ -s "$outfile" ]]; then
-        return 0 # Success
+        return 0 # Success :)
       else
         print_warn "      Download succeeded (curl code 0) but output file is empty/missing: ${BOLD}${display_filename}${NC}"
         s=99
@@ -571,7 +580,7 @@ decrypt_file() {
   openssl_output=$("$_OPENSSL" aes-128-cbc -d -K "$key_hex" -iv 0 -in "$encrypted_file" -out "$of" 2>&1)
   if [[ $? -ne 0 ]]; then
     print_warn "Openssl decryption failed for $(basename "$encrypted_file"): $openssl_output"
-    rm -f "$of" # Remove potentially corrupt output file
+    rm -f "$of" # Remove potentially corrupt output file (clean up deletes everything when this happens anyway but why not)
     return 1
   fi
   # Optional: Add a verbose log for successful decryption if needed
@@ -583,7 +592,7 @@ decrypt_segments() {
   local playlist_file="$1" segment_path="$2" threads="$3"
   local kf kl k encrypted_files=() total_encrypted
 
-  kf="${segment_path}/mon.key" # Define key file path
+  kf="${segment_path}/mon.key" # Define the mon.key file path
 
   print_info "  Checking playlist for encryption key..."
   # Extract the key URI FIRST
@@ -629,7 +638,7 @@ decrypt_segments() {
 
   print_info "  Decrypting ${BOLD}$total_encrypted${NC} segments using ${BOLD}$threads${NC} thread(s) via GNU Parallel..."
   # Export only what decrypt_file needs
-  export -f decrypt_file print_warn print_info # print_error removed if decrypt_file uses print_warn
+  export -f decrypt_file print_warn print_info
   export _OPENSSL k                            # Export key hex
 
   local parallel_opts_decrypt=()
@@ -659,7 +668,7 @@ decrypt_segments() {
   decrypted_count=$(find "$segment_path" -maxdepth 1 -type f ! -name '*.encrypted' ! -name 'mon.key' ! -name 'playlist.m3u8' ! -name 'file.list' | wc -l)
   if [[ $total_encrypted -ne $decrypted_count ]]; then
     print_warn "Number of decrypted files ($decrypted_count) does not match number of encrypted files ($total_encrypted)."
-    # Optionally return 1 here if strict matching is required
+    # return 1 # shouldn't be that strict, but could be useful for debugging
   fi
 
   print_info "  ${GREEN}✓ Decryption phase complete.${NC}"
@@ -821,7 +830,7 @@ download_episode() {
     return 0   # Success for this mode
   fi
 
-  # --- Prepare for Download ---  
+  # --- Prepare for Download ---
   set_title "⏳ $_ANIME_NAME - Episode $num" # Set terminal title
   print_info "Starting download process for Episode ${BOLD}$num${NC}..."
 
@@ -947,7 +956,6 @@ select_episodes_to_download() {
 
   print_info "Available episodes for ${BOLD}$_ANIME_NAME${NC}:"
   # Use jq with string concatenation (+) for robustness
-  # Remove printf for compatibility with older jq versions (like 1.5)
   # Output to stderr (>&2) so it appears before the prompt
   if ! "$_JQ" -r '.data[] | ("  [ " + (.episode|tostring) + " ]  E" + (.episode|tostring) + " (" + .created_at + ")")' "$source_path" >&2; then
     print_error "Failed to list episodes using jq. Check jq installation and source file."
@@ -965,7 +973,7 @@ select_episodes_to_download() {
 
 download_episodes() {
   local ep_string="$1"
-  local any_failures=0 # Track if any episode fails
+  local any_failures=0
   # $1: episode number string (e.g., "1,3-5,!10,L3,*,-2")
   local source_path="$_VIDEO_DIR_PATH/$_ANIME_NAME/$_SOURCE_FILE"
   local all_available_eps=() include_list=() exclude_list=() final_list=()
@@ -1010,7 +1018,7 @@ download_episodes() {
       print_info "  Processing inclusion pattern: ${BOLD}$pattern${NC}"
     fi
 
-    # Handle patterns (REFACTORED TO AVOID EVAL)
+# Handle patterns (could have used eval to reduce if..else, but i do my best to avoid it)
     case "$pattern" in
     \*) # Wildcard for all available
       if [[ "$target_list_ref" == "include_list" ]]; then
@@ -1132,7 +1140,7 @@ download_episodes() {
   fi
 
   if [[ ${#exclude_list[@]} -eq 0 ]]; then
-    unique_excludes=() # Ensure it's empty if input list was empty
+    unique_excludes=() # Ensure it's empty if exclude list was empty
   else
     mapfile -t unique_excludes < <(printf '%s\n' "${exclude_list[@]}" | sort -n -u)
   fi
@@ -1168,7 +1176,7 @@ download_episodes() {
       print_error "No episodes selected based on inclusion rules."
     else
       print_warn "No episodes remaining after applying exclusions."
-      # Exit gracefully without error? Or continue with no downloads? Let's exit 0.
+      # Exit gracefully without error?
       exit 0
     fi
   fi
@@ -1193,8 +1201,9 @@ download_episodes() {
       # download_episode failed (returned non-zero)
       fail_count=$((fail_count + 1))
       any_failures=1
-      # Warning message is now printed inside download_episode on failure
-      # print_warn "Episode ${BOLD}${e}${NC} failed to process fully. Skipping to the next episode."
+
+      # Warning message on failure
+      print_warn "Episode ${BOLD}${e}${NC} failed to process fully. Skipping to the next episode."
     fi
   done
 
@@ -1278,7 +1287,7 @@ main() {
 
   if [[ -n "${_INPUT_ANIME_NAME:-}" ]]; then
     local search_results
-    # search_anime_by_name now returns full "[slug] Title   " lines
+    # search_anime_by_name  returns full "[slug] Title" lines
     search_results=$(search_anime_by_name "$_INPUT_ANIME_NAME")
     if [[ -z "$search_results" ]]; then
       print_error "No anime found matching '${_INPUT_ANIME_NAME}' via API search or search failed."
@@ -1332,7 +1341,6 @@ main() {
   echo
   echo -e "${BOLD}${CYAN}======= Preparing Download =======${NC}"
 
-  # ... (rest of main function remains the same) ...
   mkdir -p "$_VIDEO_DIR_PATH/$_ANIME_NAME" || print_error "Cannot create target directory: $_VIDEO_DIR_PATH/$_ANIME_NAME"
   download_source "$_ANIME_SLUG" "$_ANIME_NAME" || print_error "Failed to download episode source information."
 
@@ -1344,10 +1352,7 @@ main() {
   print_info "Episode selection: ${BOLD}${_ANIME_EPISODE}${NC}"
 
   # Download the selected episodes
-  # Use the final exit status logic
   download_episodes "$_ANIME_EPISODE"
-
-  
 }
 
 # --- Script Entry Point ---
