@@ -12,7 +12,7 @@
 #/   -i <anime_id>           Specify anime ID directly.
 #/   -e <selection>          Episode selection (e.g., "1,3-5", "*", "L3"). Prompts if omitted.
 #/   -r <res_keyword>        Optional, keyword for resolution in server name (e.g., "1080", "720").
-#/   -S <server_keyword>     Optional, keyword for preferred server (e.g., "Vidstream", "HD").
+#/   -S <server_keyword>     Optional, keyword for preferred server (e.g., "HD-1", "HD-2").
 #/   -o <type>               Optional, audio type: "sub" or "dub". Default: "sub".
 #/   -L <langs>              Optional, subtitle languages (comma-separated codes like "eng,spa",
 #/                           or "all", "none", "default"). Default: "default".
@@ -370,10 +370,29 @@ get_stream_details() {
     print_warn "  No servers found or invalid format for ep $ep_stream_id via /api/servers/."
     return 1
   fi
-  servers_for_audio_type=$("$_JQ" -c --arg type "$audio_pref" '[.[] | select(.type == $type)]' <<<"$available_servers_json")
-  if [[ $("$_JQ" -e 'length == 0' <<<"$servers_for_audio_type") == "true" ]]; then
-    print_warn "  No servers of type '$audio_pref' for ep $ep_stream_id."
-    return 1
+  local current_audio_pref_for_request="$audio_pref"
+
+  servers_for_audio_type=$("$_JQ" -c --arg current_type "$current_audio_pref_for_request" '[.[] | select(.type == $current_type)]' <<<"$available_servers_json")
+
+  local is_empty_servers
+  is_empty_servers=$("$_JQ" -r -e 'length == 0' <<<"$servers_for_audio_type")
+  if [[ "$is_empty_servers" == "true" ]]; then
+    if [[ "$audio_pref" == "dub" ]]; then
+      print_warn "  No 'dub' servers found for Ep ${ep_num_for_log:-$ep_stream_id}. Attempting to find 'sub' servers..."
+      current_audio_pref_for_request="sub"
+      servers_for_audio_type=$("$_JQ" -c --arg current_type "$current_audio_pref_for_request" '[.[] | select(.type == $current_type)]' <<<"$available_servers_json")
+      local is_empty_fallback_servers
+      is_empty_fallback_servers=$("$_JQ" -r -e 'length == 0' <<<"$servers_for_audio_type")
+      if [[ "$is_empty_fallback_servers" == "true" ]]; then
+        print_warn "  No 'sub' servers found either for Ep ${ep_num_for_log:-$ep_stream_id}."
+        return 1
+      else
+        print_info "  Successfully switched to 'sub' servers for Ep ${ep_num_for_log:-$ep_stream_id}."
+      fi
+    else
+      print_warn "  No servers of type '$audio_pref' found for Ep ${ep_num_for_log:-$ep_stream_id}."
+      return 1
+    fi
   fi
   fzf_input_servers=$("$_JQ" -r '.[] | "\(.serverName // "N/A") (\(.type // "N/A"))|\(.serverName // "N/A" | ascii_downcase | gsub(" "; "-"))"' <<<"$servers_for_audio_type")
   filtered_servers="$fzf_input_servers"
@@ -395,7 +414,7 @@ get_stream_details() {
   chosen_server_api_name=$(echo "$selected_server_line" | awk -F'|' '{print $2}')
   print_info "  Selected server: ${BOLD}${chosen_server_display_name}${NC} (API: $chosen_server_api_name)"
   encoded_ep_stream_id_for_stream_query=$("$_JQ" -nr --arg str "$ep_stream_id" '$str|@uri')
-  query_params="id=$encoded_ep_stream_id_for_stream_query&server=${chosen_server_api_name}&type=${audio_pref}"
+  query_params="id=$encoded_ep_stream_id_for_stream_query&server=${chosen_server_api_name}&type=${current_audio_pref_for_request}"
   print_debug "  Calling /stream with query: [$query_params]"
   stream_data_results_json=$(api_get_results "/stream" "$query_params" ".results") || return 1
   print_debug "  Raw /stream .results: [$stream_data_results_json]"
@@ -438,6 +457,8 @@ download_file() {
     curl_opts_array+=(--max-time "$_SEGMENT_TIMEOUT")
   fi
   if [[ "$is_m3u8_related" == "true" ]]; then
+    curl_opts_array+=(-H "Referer: https://megacloud.club/")
+    curl_opts_array+=(-H "User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
     curl_opts_array+=(-H "Accept: */*")
   fi
 
@@ -697,23 +718,50 @@ download_episode() {
       fi
 
       if [[ "$_SUBTITLE_LANGS_PREF" == "default" ]]; then
-        subtitles_to_download_json_array=$("$_JQ" --argjson subs "$subtitles_json" -n '$subs | if type=="array" and length>0 then [.[0]] else [] end')
+        # Try to get a "default: true" subtitle first, then "english", then first available
+        local default_sub english_sub first_sub
+        default_sub=$("$_JQ" -c 'map(select(.url? and .url != "" and .url != "null" and .default == true)) | .[0] // empty' <<<"$subtitles_json")
+        english_sub=$("$_JQ" -c 'map(select(.url? and .url != "" and .url != "null" and .label? and (.label | ascii_downcase | test("english"; "i")))) | .[0] // empty' <<<"$subtitles_json")
+        first_sub=$("$_JQ" -c 'map(select(.url? and .url != "" and .url != "null")) | .[0] // empty' <<<"$subtitles_json")
+
+        if [[ -n "$default_sub" && "$default_sub" != "null" ]]; then
+          subtitles_to_download_json_array="[$default_sub]"
+        elif [[ -n "$english_sub" && "$english_sub" != "null" ]]; then
+          subtitles_to_download_json_array="[$english_sub]"
+        elif [[ -n "$first_sub" && "$first_sub" != "null" ]]; then
+          subtitles_to_download_json_array="[$first_sub]"
+        else
+          subtitles_to_download_json_array="[]"
+        fi
+        print_debug "  Default subtitle selection logic resulted in: $subtitles_to_download_json_array"
       elif [[ "$_SUBTITLE_LANGS_PREF" == "all" ]]; then
         subtitles_to_download_json_array="$subtitles_json"
+        subtitles_to_download_json_array=$("$_JQ" -c '[.[]? | select(.url? and .url != "" and .url != "null")]' <<<"$subtitles_to_download_json_array")
         print_debug "  Selected ALL available subtitles."
       else
         local temp_subs_array="[]"
-        for lang_code_pref in "${wanted_langs_array[@]}"; do
+        local wanted_langs_array_new=()
+        IFS=',' read -ra wanted_langs_array_new <<<"$_SUBTITLE_LANGS_PREF"
+
+        for lang_code_pref in "${wanted_langs_array_new[@]}"; do
+          lang_code_pref=$(echo "$lang_code_pref" | tr '[:upper:]' '[:lower:]' | xargs) # Normalize
           local found_sub
-          found_sub=$("$_JQ" --argjson subs "$subtitles_json" --arg lang "$lang_code_pref" -c '$subs | map(select(.label | test($lang; "i") or .lang | test($lang; "i"))) | .[0] // empty')
-          if [[ -n "$found_sub" ]]; then
+          found_sub=$("$_JQ" --argjson subs "$subtitles_json" --arg lang "$lang_code_pref" -c \
+            '$subs | map(select(.url? and .url != "" and .url != "null" and .label? and (
+                (.label | ascii_downcase | contains($lang)) or 
+                (if $lang == "eng" then (.label | ascii_downcase | test("english"; "i")) else false end) or
+                (if $lang == "spa" then (.label | ascii_downcase | test("spanish"; "i")) else false end)
+              ) 
+            )) | .[0] // empty')
+
+          if [[ -n "$found_sub" && "$found_sub" != "null" ]]; then
             temp_subs_array=$("$_JQ" -c '. + [$found_sub]' <<<"$temp_subs_array")
             print_debug "  Found subtitle for lang '$lang_code_pref'."
           else
             print_debug "  No subtitle found for lang '$lang_code_pref'."
           fi
         done
-        subtitles_to_download_json_array="$temp_subs_array"
+        subtitles_to_download_json_array=$("$_JQ" -c 'unique_by(.url)' <<<"$temp_subs_array")
       fi
 
       local sub_idx=0
