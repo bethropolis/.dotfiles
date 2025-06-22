@@ -22,4 +22,5 @@ places-menu@gnome-shell-extensions.gcampax.github.com:
 clipboard-indicator@tudmotu.com:
 appindicatorsupport@rgcjonas.gmail.com:
 open-desktop-location@laura.media:
+caffeine@patapon.info:
 background-logo@fedorahosted.org:

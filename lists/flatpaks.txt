@@ -3,11 +3,11 @@ app.zen_browser.zen
 ar.xjuan.Cambalache
 be.alexandervanhee.gradia
 ca.desrt.dconf-editor
-com.github.KRTirtho.Spotube
 com.github.marhkb.Pods
 com.github.neithern.g4music
 com.github.rafostar.Clapper
 com.github.tchx84.Flatseal
+com.google.ChromeDev
 com.mattjakeman.ExtensionManager
 com.notesnook.Notesnook
 com.play0ad.zeroad
@@ -21,7 +21,9 @@ dev.qwery.AddWater
 dev.vencord.Vesktop
 dev.zed.Zed
 eu.jumplink.Learn6502
+io.github.Cookiiieee.WSelector
 io.github.flattool.Warehouse
+io.github.giantpinkrobots.varia
 io.github.josephmawa.Egghead
 io.github.josephmawa.TextCompare
 io.github.nokse22.inspector
@@ -40,7 +42,6 @@ net.werwolv.ImHex
 nl.emphisia.icon
 org.audacityteam.Audacity
 org.gnome.Decibels
-org.gnome.Epiphany
 org.gnome.Fractal
 org.gnome.Papers
 org.gnome.design.IconLibrary

@@ -2,6 +2,8 @@ if status is-interactive
     # Commands to run in interactive sessions can go here
 end
 
+set fish_greeting "Hiii $USER"
+
 set -x DOTFILES $HOME/Projects/.dotfiles/
 
 # User specific environment
@@ -89,8 +91,8 @@ alias lg='lazygit'
 alias vlc="flatpak run org.videolan.VLC"
 alias clap="flatpak run com.github.rafostar.Clapper"
 alias zed="flatpak run dev.zed.Zed"
-alias anime="bash $HOME/.config/anime/anime.sh -t 12 -T 300 -o eng -r 1080 -a"
-alias animez="bash $HOME/.config/anime/zen-dl.sh -t 12 -T 300 -o dub -r 1080 -a"
+alias anime="bash $HOME/.config/anime/anime.sh -t 4 -T 300 -o eng -r 1080 -a"
+alias animez="bash $HOME/.config/anime/zen-dl.sh -t 4 -T 300 -o dub -r 1080 -a"
 alias yeet='sudo dnf remove'
 alias install="sudo dnf install -y"
 alias update='sudo dnf update -y'

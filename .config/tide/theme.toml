@@ -1,106 +1,120 @@
-name = "New Moon"
+name = "Catppuccin Macchiato"
 is_dark = true
 
 [styles]
   [styles.Default]
-    fg = "#b3b9c5"
-    bg = "#2d2d2d"
+    fg = "#cad3f5"
+    bg = "#24273a"
   [styles.SearchHighlight]
-    fg = "#ffd479"
-    bg = "#101010"
+    fg = "#1e2030"
+    bg = "#eed49f"
   [styles.Selection]
-    fg = "#b3b9c5"
-    bg = "#444444"
+    fg = "#24273a"
+    bg = "#8087a2"
+    reverse = true
   [styles.StatusBar]
-    fg = "#909090"
-    bg = "#202020"
+    fg = "#cad3f5"
+    bg = "#1e2030"
   [styles.StatusBarFind]
-    fg = "#92d192"
-    bg = "#202020"
+    fg = "#a6da95"
+    bg = "#1e2030"
     bold = true
   [styles.StatusBarMessage]
-    fg = "#b3b9c5"
-    bg = "#202020"
+    fg = "#cad3f5"
+    bg = "#1e2030"
     bold = true
   [styles.StatusBarModified]
-    fg = "#ffd479"
-    bg = "#202020"
+    fg = "#eed49f"
+    bg = "#1e2030"
   [styles.attribute]
-    fg = "#b3b9c5"
-    bg = "#2d2d2d"
+    fg = "#f5a97f"
+    bg = "#24273a"
   [styles.boolean]
-    fg = "#e1a6f2"
-    bg = "#2d2d2d"
+    fg = "#f5a97f"
+    bg = "#24273a"
+    italic = true
   [styles.builtin]
-    fg = "#e1a6f2"
-    bg = "#2d2d2d"
+    fg = "#f5a97f"
+    bg = "#24273a"
+    italic = true
   [styles.call]
-    fg = "#b3b9c5"
-    bg = "#2d2d2d"
+    fg = "#8aadf4"
+    bg = "#24273a"
+    italic = true
   [styles.character]
-    fg = "#92d192"
-    bg = "#2d2d2d"
+    fg = "#a6da95"
+    bg = "#24273a"
   [styles.comment]
-    fg = "#777c85"
-    bg = "#2d2d2d"
+    fg = "#939ab7"
+    bg = "#24273a"
     italic = true
   [styles.conditional]
-    fg = "#ffeea6"
-    bg = "#2d2d2d"
+    fg = "#c6a0f6"
+    bg = "#24273a"
+    bold = true
   [styles.constant]
-    fg = "#e1a6f2"
-    bg = "#2d2d2d"
+    fg = "#f5a97f"
+    bg = "#24273a"
   [styles.constructor]
-    fg = "#b3b9c5"
-    bg = "#2d2d2d"
+    fg = "#8aadf4"
+    bg = "#24273a"
+    italic = true
   [styles.control]
-    fg = "#ffeea6"
-    bg = "#2d2d2d"
+    fg = "#c6a0f6"
+    bg = "#24273a"
+    bold = true
   [styles.definition]
-    fg = "#b3b9c5"
-    bg = "#2d2d2d"
+    fg = "#8aadf4"
+    bg = "#24273a"
+    italic = true
   [styles.escape]
-    fg = "#ac8d58"
-    bg = "#2d2d2d"
+    fg = "#f5bde6"
+    bg = "#24273a"
   [styles.function]
-    fg = "#b3b9c5"
-    bg = "#2d2d2d"
+    fg = "#8aadf4"
+    bg = "#24273a"
+    italic = true
   [styles.import]
-    fg = "#92d192"
-    bg = "#2d2d2d"
+    fg = "#a6da95"
+    bg = "#24273a"
   [styles.keyword]
-    fg = "#ffeea6"
-    bg = "#2d2d2d"
+    fg = "#c6a0f6"
+    bg = "#24273a"
+    italic = true
   [styles.label]
-    fg = "#b3b9c5"
-    bg = "#2d2d2d"
+    fg = "#8aadf4"
+    bg = "#24273a"
   [styles.member]
-    fg = "#abb2bf"
-    bg = "#2d2d2d"
+    fg = "#cad3f5"
+    bg = "#24273a"
   [styles.module]
-    fg = "#b3b9c5"
-    bg = "#2d2d2d"
+    fg = "#eed49f"
+    bg = "#24273a"
+    italic = true
   [styles.namespace]
-    fg = "#b3b9c5"
-    bg = "#2d2d2d"
+    fg = "#eed49f"
+    bg = "#24273a"
+    italic = true
   [styles.number]
-    fg = "#fca369"
-    bg = "#2d2d2d"
+    fg = "#f5a97f"
+    bg = "#24273a"
   [styles.operator]
-    fg = "#ac8d58"
-    bg = "#2d2d2d"
+    fg = "#8bd5ca"
+    bg = "#24273a"
   [styles.punctuation]
-    fg = "#d5d8df"
-    bg = "#2d2d2d"
+    fg = "#939ab7"
+    bg = "#24273a"
   [styles.repeat]
-    fg = "#ffeea6"
-    bg = "#2d2d2d"
+    fg = "#c6a0f6"
+    bg = "#24273a"
+    bold = true
   [styles.string]
-    fg = "#92d192"
-    bg = "#2d2d2d"
+    fg = "#a6da95"
+    bg = "#24273a"
   [styles.type]
-    fg = "#6ab0f3"
-    bg = "#2d2d2d"
+    fg = "#eed49f"
+    bg = "#24273a"
+    italic = true
   [styles.variable]
-    fg = "#f2777a"
-    bg = "#2d2d2d"
+    fg = "#cad3f5"
+    bg = "#24273a"
