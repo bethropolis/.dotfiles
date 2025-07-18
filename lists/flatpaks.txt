@@ -13,6 +13,7 @@ com.notesnook.Notesnook
 com.play0ad.zeroad
 com.stremio.Stremio
 com.toolstack.Folio
+com.transmissionbt.Transmission
 com.usebruno.Bruno
 de.haeckerfelix.Fragments
 dev.geopjr.Collision
@@ -40,17 +41,18 @@ me.iepure.devtoolbox
 net.nokyan.Resources
 net.werwolv.ImHex
 nl.emphisia.icon
+org.DolphinEmu.dolphin-emu
 org.audacityteam.Audacity
 org.gnome.Decibels
 org.gnome.Fractal
 org.gnome.Papers
 org.gnome.design.IconLibrary
 org.localsend.localsend_app
+org.muttum.muttum
 org.onlyoffice.desktopeditors
 org.ppsspp.PPSSPP
 org.videolan.VLC
 page.kramo.Cartridges
-re.sonny.Playhouse
 re.sonny.Tangram
 re.sonny.Workbench
 se.sjoerd.Graphs

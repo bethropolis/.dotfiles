@@ -24,3 +24,4 @@ appindicatorsupport@rgcjonas.gmail.com:
 open-desktop-location@laura.media:
 caffeine@patapon.info:
 background-logo@fedorahosted.org:
+custom-command-toggle@storageb.github.com:

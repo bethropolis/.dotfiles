@@ -88,6 +88,7 @@ alias cls="clear"
 alias neofetch="fastfetch"
 alias mariadb="mariadb -u bethro -p"
 alias lg='lazygit'
+alias grab='grab --output ./codebase.md'
 alias vlc="flatpak run org.videolan.VLC"
 alias clap="flatpak run com.github.rafostar.Clapper"
 alias zed="flatpak run dev.zed.Zed"
