@@ -22,14 +22,17 @@ dev.qwery.AddWater
 dev.vencord.Vesktop
 dev.zed.Zed
 eu.jumplink.Learn6502
+info.febvre.Komikku
 io.github.Cookiiieee.WSelector
 io.github.flattool.Warehouse
 io.github.giantpinkrobots.varia
 io.github.josephmawa.Egghead
 io.github.josephmawa.TextCompare
+io.github.lincity_ng.lincity-ng
 io.github.nokse22.inspector
 io.github.nozwock.Packet
 io.github.realmazharhussain.GdmSettings
+io.github.swordpuffin.rewaita
 io.github.voidforce.qsprawl
 io.gitlab.theevilskeleton.Upscaler
 io.missioncenter.MissionCenter
@@ -38,6 +41,7 @@ it.fabiodistasio.AntaresSQL
 it.mijorus.gearlever
 it.mijorus.smile
 me.iepure.devtoolbox
+net.newpipe.NewPipe
 net.nokyan.Resources
 net.werwolv.ImHex
 nl.emphisia.icon
@@ -47,6 +51,7 @@ org.gnome.Decibels
 org.gnome.Fractal
 org.gnome.Papers
 org.gnome.design.IconLibrary
+org.kde.kate
 org.localsend.localsend_app
 org.muttum.muttum
 org.onlyoffice.desktopeditors
