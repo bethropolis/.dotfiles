@@ -60,5 +60,4 @@ org.videolan.VLC
 page.kramo.Cartridges
 re.sonny.Tangram
 re.sonny.Workbench
-se.sjoerd.Graphs
 sh.ppy.osu
