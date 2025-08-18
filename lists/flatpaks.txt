@@ -7,7 +7,6 @@ com.github.marhkb.Pods
 com.github.neithern.g4music
 com.github.rafostar.Clapper
 com.github.tchx84.Flatseal
-com.google.ChromeDev
 com.mattjakeman.ExtensionManager
 com.notesnook.Notesnook
 com.play0ad.zeroad
@@ -47,6 +46,7 @@ net.werwolv.ImHex
 nl.emphisia.icon
 org.DolphinEmu.dolphin-emu
 org.audacityteam.Audacity
+org.duckstation.DuckStation
 org.gnome.Decibels
 org.gnome.Fractal
 org.gnome.Papers
