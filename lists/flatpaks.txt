@@ -14,6 +14,7 @@ com.stremio.Stremio
 com.toolstack.Folio
 com.transmissionbt.Transmission
 com.usebruno.Bruno
+com.warlordsoftwares.youtube-downloader-4ktube
 de.haeckerfelix.Fragments
 dev.geopjr.Collision
 dev.lapce.lapce
@@ -27,6 +28,7 @@ io.github.flattool.Warehouse
 io.github.giantpinkrobots.varia
 io.github.josephmawa.Egghead
 io.github.josephmawa.TextCompare
+io.github.kolunmi.Bazaar
 io.github.lincity_ng.lincity-ng
 io.github.nokse22.inspector
 io.github.nozwock.Packet
