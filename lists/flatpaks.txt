@@ -13,6 +13,7 @@ com.play0ad.zeroad
 com.stremio.Stremio
 com.toolstack.Folio
 com.transmissionbt.Transmission
+com.usebottles.bottles
 com.usebruno.Bruno
 com.warlordsoftwares.youtube-downloader-4ktube
 de.haeckerfelix.Fragments
