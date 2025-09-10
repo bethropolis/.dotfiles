@@ -1,6 +1,5 @@
 app.drey.Biblioteca
 app.zen_browser.zen
-ar.xjuan.Cambalache
 be.alexandervanhee.gradia
 ca.desrt.dconf-editor
 com.github.marhkb.Pods
@@ -11,7 +10,6 @@ com.mattjakeman.ExtensionManager
 com.notesnook.Notesnook
 com.play0ad.zeroad
 com.stremio.Stremio
-com.toolstack.Folio
 com.transmissionbt.Transmission
 com.usebottles.bottles
 com.usebruno.Bruno
@@ -33,7 +31,6 @@ io.github.kolunmi.Bazaar
 io.github.lincity_ng.lincity-ng
 io.github.nokse22.inspector
 io.github.nozwock.Packet
-io.github.realmazharhussain.GdmSettings
 io.github.swordpuffin.rewaita
 io.github.voidforce.qsprawl
 io.gitlab.theevilskeleton.Upscaler
@@ -45,7 +42,6 @@ it.mijorus.smile
 me.iepure.devtoolbox
 net.newpipe.NewPipe
 net.nokyan.Resources
-net.werwolv.ImHex
 nl.emphisia.icon
 org.DolphinEmu.dolphin-emu
 org.audacityteam.Audacity
@@ -61,6 +57,5 @@ org.onlyoffice.desktopeditors
 org.ppsspp.PPSSPP
 org.videolan.VLC
 page.kramo.Cartridges
-re.sonny.Tangram
 re.sonny.Workbench
 sh.ppy.osu
