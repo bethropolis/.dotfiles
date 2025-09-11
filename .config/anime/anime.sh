@@ -58,10 +58,10 @@ fi
 
 # --- Global Variables ---
 _SCRIPT_NAME="$(basename "$0")"
-_ANIME_NAME="unknown_anime" # Default, will be overwritten
-_SEGMENT_TIMEOUT="360"         # Default timeout is disabled
+_ANIME_NAME="unknown_anime"                                     # Default, will be overwritten
+_SEGMENT_TIMEOUT="360"                                          # Default timeout is disabled
 _ALLOW_NOTIFICATION="${ANIMEPAHE_DOWNLOAD_NOTIFICATION:-false}" # Allow notifications, defaults to false
-_NOTIFICATION_URG="normal" # Default notification urgency
+_NOTIFICATION_URG="normal"                                      # Default notification urgency
 
 # --- Trap Function ---
 cleanup() {
@@ -126,7 +126,7 @@ set_var() {
   _MKTEMP="$(command -v mktemp)" || command_not_found "mktemp"
   print_info "${GREEN}✓ All tools found.${NC}"
 
-  _HOST="https://animepahe.ru"
+  _HOST="https://animepahe.si"
   _ANIME_URL="$_HOST/anime"
   _API_URL="$_HOST/api"
   _REFERER_URL="$_HOST"
@@ -205,8 +205,7 @@ send_notification() {
   # $2: Body message
   # $3: Urgency (low, normal, critical) - optional, defaults to normal
 
-
-  if ! command -v "$_NOTIFICATION_CMD" &> /dev/null; then
+  if ! command -v "$_NOTIFICATION_CMD" &>/dev/null; then
     return 0
   fi
 
@@ -214,7 +213,7 @@ send_notification() {
   local body="${2}"
   local urgency="${3:-$_NOTIFICATION_URG}"
 
-  "$_NOTIFICATION_CMD" -u "$urgency" -i "folder-download-symbolic"  -a "animepahe downloader" "$title" "$body"
+  "$_NOTIFICATION_CMD" -u "$urgency" -i "folder-download-symbolic" -a "animepahe downloader" "$title" "$body"
 }
 
 download_anime_list() {
@@ -639,7 +638,7 @@ decrypt_segments() {
   print_info "  Decrypting ${BOLD}$total_encrypted${NC} segments using ${BOLD}$threads${NC} thread(s) via GNU Parallel..."
   # Export only what decrypt_file needs
   export -f decrypt_file print_warn print_info
-  export _OPENSSL k                            # Export key hex
+  export _OPENSSL k # Export key hex
 
   local parallel_opts_decrypt=()
   parallel_opts_decrypt+=("--jobs" "$threads")
@@ -1018,7 +1017,7 @@ download_episodes() {
       print_info "  Processing inclusion pattern: ${BOLD}$pattern${NC}"
     fi
 
-# Handle patterns (could have used eval to reduce if..else, but i do my best to avoid it)
+    # Handle patterns (could have used eval to reduce if..else, but i do my best to avoid it)
     case "$pattern" in
     \*) # Wildcard for all available
       if [[ "$target_list_ref" == "include_list" ]]; then
@@ -1220,14 +1219,11 @@ download_episodes() {
   echo
   echo -e "${GREEN}✓ All tasks completed!${NC}"
 
-
-
   # --- Optional Notification ---
   # Check if _ALLOW_NOTIFICATION vAriable is set TO true
   if [[ "${_ALLOW_NOTIFICATION:-false}" == "true" ]]; then
-    "$_NOTIFICATION_CMD"  "Download complete: $_ANIME_NAME " "Success: $success_count Failed: $fail_count"
+    "$_NOTIFICATION_CMD" "Download complete: $_ANIME_NAME " "Success: $success_count Failed: $fail_count"
   fi
-
 
   # Exit with non-zero status if any episode failed
   exit $any_failures
