@@ -33,6 +33,7 @@ io.github.nokse22.inspector
 io.github.nozwock.Packet
 io.github.swordpuffin.rewaita
 io.github.voidforce.qsprawl
+io.github.zingytomato.netpeek
 io.gitlab.theevilskeleton.Upscaler
 io.missioncenter.MissionCenter
 io.podman_desktop.PodmanDesktop
