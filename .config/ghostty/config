@@ -43,6 +43,6 @@
 # resize-overlay-duration = 4s 200ms
 
 
-theme = catppuccin-macchiato
+theme = Catppuccin Macchiato
 window-decoration = none
 window-theme = ghostty
