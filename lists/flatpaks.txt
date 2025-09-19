@@ -9,6 +9,7 @@ com.github.tchx84.Flatseal
 com.mattjakeman.ExtensionManager
 com.notesnook.Notesnook
 com.play0ad.zeroad
+com.playonlinux.PlayOnLinux4
 com.stremio.Stremio
 com.transmissionbt.Transmission
 com.usebottles.bottles
