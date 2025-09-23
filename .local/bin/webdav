@@ -1,0 +1,502 @@
+#!/bin/bash
+
+# WebDAV Server Wrapper Script
+# Place this in ~/.local/bin/webdav and make it executable
+# Usage: webdav [options]
+
+# Configuration
+WEBDAV_ROOT="/home/bet/Projects/python/webdav"
+PYTHON_BIN="$WEBDAV_ROOT/webdav_env/bin/python3"
+SERVER_SCRIPT="$WEBDAV_ROOT/webdav_server.py"
+DEFAULT_DIR="$HOME/Videos"
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m'
+
+# Helper functions
+print_help() {
+    echo -e "${CYAN}WebDAV Server Wrapper${NC}"
+    echo -e "${YELLOW}Usage:${NC} webdav [command] [options]"
+    echo ""
+    echo -e "${YELLOW}Commands:${NC}"
+    echo -e "  ${GREEN}start${NC}      Start WebDAV server (default)"
+    echo -e "  ${GREEN}stop${NC}       Stop running WebDAV server"
+    echo -e "  ${GREEN}status${NC}     Check server status"
+    echo -e "  ${GREEN}info${NC}       Show detailed server information"
+    echo -e "  ${GREEN}url${NC}        Get server URL(s)"
+    echo -e "  ${GREEN}copy${NC}       Copy server URL to clipboard"
+    echo -e "  ${GREEN}logs${NC}       View server logs (if running as service)"
+    echo -e "  ${GREEN}setup${NC}      Set up credentials interactively"
+    echo -e "  ${GREEN}test${NC}       Test server connection"
+    echo ""
+    echo -e "${YELLOW}Start Options:${NC}"
+    echo -e "  ${BLUE}--public${NC}       Allow network access (default: localhost only)"
+    echo -e "  ${BLUE}--writable${NC}     Enable write access (default: read-only)"
+    echo -e "  ${BLUE}--port PORT${NC}    Use specific port (default: 8080)"
+    echo -e "  ${BLUE}--dir PATH${NC}     Share specific directory (default: ~/Documents)"
+    echo -e "  ${BLUE}--background${NC}   Run in background"
+    echo ""
+    echo -e "${YELLOW}Quick Examples:${NC}"
+    echo -e "  ${GREEN}webdav${NC}                       # Start server locally"
+    echo -e "  ${GREEN}webdav --public${NC}              # Share on network"
+    echo -e "  ${GREEN}webdav --writable --public${NC}   # Full access on network"
+    echo -e "  ${GREEN}webdav --dir ~/Pictures${NC}      # Share Pictures folder"
+    echo -e "  ${GREEN}webdav stop${NC}                  # Stop server"
+}
+
+check_credentials() {
+    if [[ -z "$WEBDAV_USER" || -z "$WEBDAV_PASS" ]]; then
+        echo -e "${RED}❌ Credentials not set!${NC}"
+        echo -e "${YELLOW}Run:${NC} webdav setup ${YELLOW}to configure credentials${NC}"
+        echo -e "${YELLOW}Or set manually:${NC}"
+        echo "  export WEBDAV_USER=username"
+        echo "  export WEBDAV_PASS=password"
+        return 1
+    fi
+    return 0
+}
+
+setup_credentials() {
+    echo -e "${CYAN}🔧 WebDAV Credentials Setup${NC}"
+    echo ""
+
+    # Get username
+    read -p "Enter WebDAV username: " username
+    if [[ -z "$username" ]]; then
+        echo -e "${RED}Username cannot be empty${NC}"
+        exit 1
+    fi
+
+    # Get password (hidden input)
+    read -s -p "Enter WebDAV password: " password
+    echo ""
+    if [[ -z "$password" ]]; then
+        echo -e "${RED}Password cannot be empty${NC}"
+        exit 1
+    fi
+
+    # Determine shell config file
+    if [[ "$SHELL" == *"zsh"* ]]; then
+        config_file="$HOME/.zshrc"
+    else
+        config_file="$HOME/.bashrc"
+    fi
+
+    # Add to shell config
+    echo "" >> "$config_file"
+    echo "# WebDAV Server Credentials" >> "$config_file"
+    echo "export WEBDAV_USER=\"$username\"" >> "$config_file"
+    echo "export WEBDAV_PASS=\"$password\"" >> "$config_file"
+
+    # Set for current session
+    export WEBDAV_USER="$username"
+    export WEBDAV_PASS="$password"
+
+    echo -e "${GREEN}✅ Credentials saved to $config_file${NC}"
+    echo -e "${YELLOW}💡 Reload your shell or run:${NC} source $config_file"
+}
+
+get_server_pid() {
+    pgrep -f "webdav_server.py" 2>/dev/null
+}
+
+get_local_ip() {
+    # Try multiple methods to get local IP
+    local ip=""
+
+    # Method 1: Try ip route (most reliable)
+    if command -v ip >/dev/null 2>&1; then
+        ip=$(ip route get 8.8.8.8 2>/dev/null | grep -oP 'src \K\S+' | head -1)
+    fi
+
+    # Method 2: Try hostname -I as fallback
+    if [[ -z "$ip" ]] && command -v hostname >/dev/null 2>&1; then
+        ip=$(hostname -I 2>/dev/null | awk '{print $1}')
+    fi
+
+    # Method 3: Try ifconfig as last resort
+    if [[ -z "$ip" ]] && command -v ifconfig >/dev/null 2>&1; then
+        ip=$(ifconfig 2>/dev/null | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | head -1)
+    fi
+
+    echo "${ip:-127.0.0.1}"
+}
+
+server_status() {
+    local pid=$(get_server_pid)
+    if [[ -n "$pid" ]]; then
+        echo -e "${GREEN}✅ WebDAV server is running (PID: $pid)${NC}"
+
+        # Try multiple methods to get port/host info
+        local port_info=""
+        local port=""
+        local bind_host=""
+
+        # Method 1: Try ss (newer, preferred)
+        if command -v ss >/dev/null 2>&1; then
+            port_info=$(ss -tlpn 2>/dev/null | grep "pid=$pid" | head -1)
+            if [[ -n "$port_info" ]]; then
+                local addr=$(echo "$port_info" | awk '{print $4}')
+                bind_host=$(echo "$addr" | cut -d':' -f1)
+                port=$(echo "$addr" | cut -d':' -f2)
+            fi
+        fi
+
+        # Method 2: Fallback to netstat
+        if [[ -z "$port_info" ]] && command -v netstat >/dev/null 2>&1; then
+            port_info=$(netstat -tlpn 2>/dev/null | grep "$pid" | head -1)
+            if [[ -n "$port_info" ]]; then
+                local addr=$(echo "$port_info" | awk '{print $4}')
+                bind_host=$(echo "$addr" | cut -d':' -f1)
+                port=$(echo "$addr" | cut -d':' -f2)
+            fi
+        fi
+
+        if [[ -n "$port" ]]; then
+            # Handle different binding scenarios
+            if [[ "$bind_host" == "0.0.0.0" ]]; then
+                local local_ip=$(get_local_ip)
+                echo -e "${BLUE}🌐 Access at:${NC}"
+                echo -e "   • Local: http://localhost:$port/"
+                echo -e "   • Network: http://$local_ip:$port/"
+            elif [[ "$bind_host" == "127.0.0.1" || "$bind_host" == "localhost" ]]; then
+                echo -e "${BLUE}🌐 Access at: http://localhost:$port/${NC}"
+            else
+                echo -e "${BLUE}🌐 Access at: http://$bind_host:$port/${NC}"
+            fi
+        else
+            echo -e "${YELLOW}⚠️  Could not determine server address${NC}"
+        fi
+        return 0
+    else
+        echo -e "${YELLOW}❌ WebDAV server is not running${NC}"
+        return 1
+    fi
+}
+
+stop_server() {
+    local pid=$(get_server_pid)
+    if [[ -n "$pid" ]]; then
+        echo -e "${YELLOW}🛑 Stopping WebDAV server (PID: $pid)...${NC}"
+        kill "$pid" 2>/dev/null
+        sleep 2
+
+        # Check if still running
+        if [[ -n $(get_server_pid) ]]; then
+            echo -e "${RED}⚠️  Server didn't stop gracefully, force killing...${NC}"
+            kill -9 "$pid" 2>/dev/null
+        fi
+
+        echo -e "${GREEN}✅ WebDAV server stopped${NC}"
+    else
+        echo -e "${YELLOW}❌ No WebDAV server running${NC}"
+    fi
+}
+
+show_detailed_info() {
+    local pid=$(get_server_pid)
+    if [[ -z "$pid" ]]; then
+        echo -e "${YELLOW}❌ WebDAV server is not running${NC}"
+        return 1
+    fi
+
+    echo -e "${CYAN}📊 WebDAV Server Detailed Information${NC}"
+    echo -e "${BLUE}════════════════════════════════════════${NC}"
+
+    # Process information
+    echo -e "${GREEN}🔧 Process Information:${NC}"
+    echo -e "   PID: $pid"
+    if command -v ps >/dev/null 2>&1; then
+        local start_time=$(ps -o lstart= -p "$pid" 2>/dev/null | sed 's/^ *//')
+        local cpu_mem=$(ps -o %cpu,%mem,vsz,rss -p "$pid" 2>/dev/null | tail -1)
+        [[ -n "$start_time" ]] && echo -e "   Started: $start_time"
+        [[ -n "$cpu_mem" ]] && echo -e "   Resources: $cpu_mem (CPU%, MEM%, VSZ KB, RSS KB)"
+    fi
+
+    # Network information
+    echo -e "\n${GREEN}🌐 Network Information:${NC}"
+    local port_info=""
+    local connections=""
+
+    if command -v ss >/dev/null 2>&1; then
+        port_info=$(ss -tlpn 2>/dev/null | grep "pid=$pid")
+        connections=$(ss -tn 2>/dev/null | grep ":$(echo "$port_info" | awk '{print $4}' | cut -d':' -f2)" | wc -l 2>/dev/null)
+    elif command -v netstat >/dev/null 2>&1; then
+        port_info=$(netstat -tlpn 2>/dev/null | grep "$pid")
+        local port=$(echo "$port_info" | awk '{print $4}' | cut -d':' -f2)
+        connections=$(netstat -tn 2>/dev/null | grep ":$port" | wc -l 2>/dev/null)
+    fi
+
+    if [[ -n "$port_info" ]]; then
+        local addr=$(echo "$port_info" | awk '{print $4}')
+        local bind_host=$(echo "$addr" | cut -d':' -f1)
+        local port=$(echo "$addr" | cut -d':' -f2)
+        echo -e "   Binding: $bind_host:$port"
+        echo -e "   Active connections: ${connections:-0}"
+
+        if [[ "$bind_host" == "0.0.0.0" ]]; then
+            echo -e "   Access scope: Network (all interfaces)"
+        else
+            echo -e "   Access scope: Local only"
+        fi
+    fi
+
+    # Configuration information
+    echo -e "\n${GREEN}⚙️  Configuration:${NC}"
+    echo -e "   Credentials: ${WEBDAV_USER:-'Not set'} / ${WEBDAV_PASS:+[Hidden]}"
+    echo -e "   Script path: $SERVER_SCRIPT"
+    echo -e "   Python path: $PYTHON_BIN"
+
+    # Directory information
+    if [[ -n "$port_info" ]]; then
+        local cmdline=$(cat /proc/$pid/cmdline 2>/dev/null | tr '\0' ' ')
+        if [[ "$cmdline" == *"--directory"* ]]; then
+            local shared_dir=$(echo "$cmdline" | grep -o '\--directory [^[:space:]]*' | cut -d' ' -f2)
+            echo -e "   Shared directory: ${shared_dir:-$DEFAULT_DIR}"
+        else
+            echo -e "   Shared directory: $DEFAULT_DIR (default)"
+        fi
+
+        if [[ "$cmdline" == *"--writable"* ]]; then
+            echo -e "   Access mode: Read-Write"
+        else
+            echo -e "   Access mode: Read-Only"
+        fi
+    fi
+
+    echo -e "${BLUE}════════════════════════════════════════${NC}"
+}
+
+get_server_urls() {
+    local pid=$(get_server_pid)
+    if [[ -z "$pid" ]]; then
+        echo -e "${YELLOW}❌ WebDAV server is not running${NC}" >&2
+        return 1
+    fi
+
+    local port_info=""
+    local port=""
+    local bind_host=""
+
+    # Get port/host info using ss or netstat
+    if command -v ss >/dev/null 2>&1; then
+        port_info=$(ss -tlpn 2>/dev/null | grep "pid=$pid" | head -1)
+        if [[ -n "$port_info" ]]; then
+            local addr=$(echo "$port_info" | awk '{print $4}')
+            bind_host=$(echo "$addr" | cut -d':' -f1)
+            port=$(echo "$addr" | cut -d':' -f2)
+        fi
+    elif command -v netstat >/dev/null 2>&1; then
+        port_info=$(netstat -tlpn 2>/dev/null | grep "$pid" | head -1)
+        if [[ -n "$port_info" ]]; then
+            local addr=$(echo "$port_info" | awk '{print $4}')
+            bind_host=$(echo "$addr" | cut -d':' -f1)
+            port=$(echo "$addr" | cut -d':' -f2)
+        fi
+    fi
+
+    if [[ -z "$port" ]]; then
+        return 1
+    fi
+
+    # Return URLs based on binding
+    if [[ "$bind_host" == "0.0.0.0" ]]; then
+        local local_ip=$(get_local_ip)
+        echo "http://localhost:$port/"
+        echo "http://$local_ip:$port/"
+    else
+        echo "http://$bind_host:$port/"
+    fi
+}
+
+show_urls() {
+    local urls=$(get_server_urls)
+    if [[ $? -eq 0 ]]; then
+        echo -e "${BLUE}🌐 Server URLs:${NC}"
+        while IFS= read -r url; do
+            echo -e "   $url"
+        done <<< "$urls"
+    fi
+}
+
+copy_url() {
+    local urls=$(get_server_urls)
+    if [[ $? -ne 0 ]]; then
+        return 1
+    fi
+
+    local primary_url=$(echo "$urls" | head -1)
+
+    # Try different clipboard tools
+    if command -v wl-copy >/dev/null 2>&1; then
+        echo -n "$primary_url" | wl-copy
+        echo -e "${GREEN}✅ URL copied to clipboard: $primary_url${NC}"
+    elif command -v xsel >/dev/null 2>&1; then
+        echo -n "$primary_url" | xsel --clipboard --input
+        echo -e "${GREEN}✅ URL copied to clipboard: $primary_url${NC}"
+    elif command -v xclip >/dev/null 2>&1; then
+        echo -n "$primary_url" | xclip -selection clipboard
+        echo -e "${GREEN}✅ URL copied to clipboard: $primary_url${NC}"
+    else
+        echo -e "${YELLOW}⚠️  No clipboard tool found (xclip, xsel, or wl-copy)${NC}"
+        echo -e "${BLUE}URL: $primary_url${NC}"
+    fi
+}
+
+test_server() {
+    local urls=$(get_server_urls 2>/dev/null)
+    if [[ $? -ne 0 ]]; then
+        echo -e "${RED}❌ WebDAV server is not running${NC}"
+        return 1
+    fi
+
+    echo -e "${CYAN}🔍 Testing WebDAV server connections...${NC}"
+
+    if ! command -v curl >/dev/null 2>&1; then
+        echo -e "${YELLOW}⚠️  curl not installed, cannot test connections${NC}"
+        return 1
+    fi
+
+    local all_success=true
+
+    while IFS= read -r url; do
+        echo -n "   Testing $url ... "
+        local response=$(curl -s -o /dev/null -w "%{http_code}" "$url" --max-time 5 --connect-timeout 3)
+        case "$response" in
+            200|401)
+                echo -e "${GREEN}✅ OK (HTTP $response)${NC}"
+                ;;
+            000)
+                echo -e "${RED}❌ Not reachable${NC}"
+                all_success=false
+                ;;
+            *)
+                echo -e "${YELLOW}⚠️  HTTP $response${NC}"
+                ;;
+        esac
+    done <<< "$urls"
+
+    if [[ "$all_success" == true ]]; then
+        echo -e "\n${GREEN}✅ All endpoints are accessible${NC}"
+    fi
+}
+
+start_server() {
+    # Check if server is already running
+    if [[ -n $(get_server_pid) ]]; then
+        echo -e "${YELLOW}⚠️  WebDAV server is already running${NC}"
+        server_status
+        return 1
+    fi
+
+    # Check credentials
+    if ! check_credentials; then
+        return 1
+    fi
+
+    # Check if Python script exists
+    if [[ ! -f "$SERVER_SCRIPT" ]]; then
+        echo -e "${RED}❌ Server script not found: $SERVER_SCRIPT${NC}"
+        return 1
+    fi
+
+    # Check if Python virtual environment exists
+    if [[ ! -f "$PYTHON_BIN" ]]; then
+        echo -e "${RED}❌ Python virtual environment not found: $PYTHON_BIN${NC}"
+        echo -e "${YELLOW}💡 Run the setup script first${NC}"
+        return 1
+    fi
+
+    # Build command
+    local cmd="$PYTHON_BIN $SERVER_SCRIPT"
+    local args=""
+    local background=false
+    local port=""
+
+    # Parse arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --public) args="$args --public" ;;
+            --writable) args="$args --writable" ;;
+            --port) args="$args --port $2"; port="$2"; shift ;;
+            --dir) args="$args --directory $2"; shift ;;
+            --background) background=true ;;
+            *) args="$args $1" ;;
+        esac
+        shift
+    done
+
+    # Set default directory if not specified
+    if [[ "$args" != *"--directory"* ]]; then
+        args="$args --directory $DEFAULT_DIR"
+    fi
+
+    # Run in background or foreground
+    if [[ "$background" == true ]]; then
+        echo -e "${CYAN}🚀 Starting WebDAV server in background...${NC}"
+        nohup $cmd $args >/dev/null 2>&1 &
+        sleep 2
+        server_status
+    else
+        echo -e "${CYAN}🚀 Starting WebDAV server...${NC}"
+        echo -e "${YELLOW}💡 Press Ctrl+C to stop${NC}"
+        exec $cmd $args
+    fi
+}
+
+# Main script logic
+case "${1:-start}" in
+    "help"|"-h"|"--help")
+        print_help
+        ;;
+    "setup")
+        setup_credentials
+        ;;
+    "start")
+        shift
+        start_server "$@"
+        ;;
+    "stop")
+        stop_server
+        ;;
+    "status")
+        server_status
+        ;;
+    "info"|"details")
+        show_detailed_info
+        ;;
+    "url"|"urls")
+        show_urls
+        ;;
+    "copy")
+        copy_url
+        ;;
+    "restart")
+        stop_server
+        sleep 1
+        shift
+        start_server "$@"
+        ;;
+    "test")
+        shift
+        test_server "$@"
+        ;;
+    "logs")
+        if systemctl is-active --quiet webdav 2>/dev/null; then
+            journalctl -u webdav -f
+        else
+            echo -e "${YELLOW}⚠️  Server not running as systemd service${NC}"
+            echo -e "${BLUE}💡 For live logs, run server in foreground mode${NC}"
+        fi
+        ;;
+    *)
+        # If first argument doesn't match commands, treat as start with options
+        start_server "$@"
+        ;;
+esac

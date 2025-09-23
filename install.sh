@@ -27,8 +27,7 @@ SPECIAL_DIRS=(
   ".config"
   ".local/share"
   ".local/bin"
-  ".config/nvim"  # Nvim lua directory for plugins
-  # Add more directories here as needed
+  ".config/nvim"
 )
 
 # Default files to always ignore
@@ -104,13 +103,13 @@ is_special_dir() {
     if [ "$relative_path" = "$dir" ]; then
       return 0
     fi
-    
+
     # Check if this is a parent of a nested special directory
     # For example, .config is a parent of .config/nvim/lua
     if [[ "$dir" == "$relative_path/"* ]]; then
       return 0
     fi
-    
+
     # Check if this is a nested special directory itself
     if [[ "$relative_path" == "$dir"/* ]]; then
       return 0
