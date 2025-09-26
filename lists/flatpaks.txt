@@ -60,3 +60,4 @@ org.videolan.VLC
 page.kramo.Cartridges
 re.sonny.Workbench
 sh.ppy.osu
+xyz.ketok.Speedtest
