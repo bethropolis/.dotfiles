@@ -13,7 +13,6 @@ com.stremio.Stremio
 com.transmissionbt.Transmission
 com.usebottles.bottles
 com.usebruno.Bruno
-com.warlordsoftwares.youtube-downloader-4ktube
 de.haeckerfelix.Fragments
 dev.geopjr.Collision
 dev.lapce.lapce
@@ -53,6 +52,7 @@ org.gnome.Papers
 org.gnome.design.IconLibrary
 org.kde.kate
 org.localsend.localsend_app
+org.mozilla.firefox
 org.muttum.muttum
 org.onlyoffice.desktopeditors
 org.ppsspp.PPSSPP
