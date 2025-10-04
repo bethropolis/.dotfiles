@@ -31,6 +31,7 @@ io.github.lincity_ng.lincity-ng
 io.github.nokse22.inspector
 io.github.nozwock.Packet
 io.github.swordpuffin.rewaita
+io.github.tobagin.Draughts
 io.github.voidforce.qsprawl
 io.github.zingytomato.netpeek
 io.gitlab.theevilskeleton.Upscaler
