@@ -41,6 +41,7 @@ it.fabiodistasio.AntaresSQL
 it.mijorus.gearlever
 it.mijorus.smile
 me.iepure.devtoolbox
+net.base_art.Glide
 net.newpipe.NewPipe
 net.nokyan.Resources
 nl.emphisia.icon
