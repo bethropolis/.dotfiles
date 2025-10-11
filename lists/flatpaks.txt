@@ -47,7 +47,6 @@ net.nokyan.Resources
 nl.emphisia.icon
 org.DolphinEmu.dolphin-emu
 org.audacityteam.Audacity
-org.duckstation.DuckStation
 org.gnome.Decibels
 org.gnome.Fractal
 org.gnome.Papers
@@ -60,6 +59,5 @@ org.onlyoffice.desktopeditors
 org.ppsspp.PPSSPP
 org.videolan.VLC
 page.kramo.Cartridges
-re.sonny.Workbench
 sh.ppy.osu
 xyz.ketok.Speedtest
