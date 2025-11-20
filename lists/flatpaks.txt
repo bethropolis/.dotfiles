@@ -34,7 +34,6 @@ io.github.nozwock.Packet
 io.github.shonubot.Spruce
 io.github.swordpuffin.rewaita
 io.github.tobagin.Draughts
-io.github.voidforce.qsprawl
 io.github.zingytomato.netpeek
 io.gitlab.theevilskeleton.Upscaler
 io.missioncenter.MissionCenter
@@ -43,7 +42,6 @@ it.fabiodistasio.AntaresSQL
 it.mijorus.gearlever
 it.mijorus.smile
 me.iepure.devtoolbox
-net.base_art.Glide
 net.newpipe.NewPipe
 net.nokyan.Resources
 nl.emphisia.icon
