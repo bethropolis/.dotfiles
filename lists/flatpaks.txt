@@ -22,6 +22,7 @@ dev.vencord.Vesktop
 dev.zed.Zed
 eu.jumplink.Learn6502
 info.febvre.Komikku
+io.github.BrisklyDev.Brisk
 io.github.Cookiiieee.WSelector
 io.github.flattool.Warehouse
 io.github.giantpinkrobots.varia
