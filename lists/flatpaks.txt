@@ -35,6 +35,7 @@ io.github.nozwock.Packet
 io.github.shonubot.Spruce
 io.github.swordpuffin.rewaita
 io.github.tobagin.Draughts
+io.github.tobagin.digger
 io.github.zingytomato.netpeek
 io.gitlab.theevilskeleton.Upscaler
 io.missioncenter.MissionCenter
