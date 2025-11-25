@@ -40,6 +40,7 @@ io.github.zingytomato.netpeek
 io.gitlab.theevilskeleton.Upscaler
 io.missioncenter.MissionCenter
 io.podman_desktop.PodmanDesktop
+io.qt.qtwebengine.BaseApp
 it.fabiodistasio.AntaresSQL
 it.mijorus.gearlever
 it.mijorus.smile
