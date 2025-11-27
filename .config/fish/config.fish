@@ -2,8 +2,6 @@ if status is-interactive
     # Commands to run in interactive sessions can go here
 end
 
-set fish_greeting "Hiii $USER"
-
 set -x DOTFILES $HOME/Projects/.dotfiles/
 
 # User specific environment
@@ -108,6 +106,17 @@ alias q="exit"
 # Custom function to source fish config (equivalent to source bashrc)
 function reload_fish
     source ~/.config/fish/config.fish
+end
+
+function fish_greeting
+    fastfetch
+    set_color cyan --bold
+    echo "→ Hiii $USER ✨" | pv -qL 15
+    set_color normal
+    set_color brblack
+    echo "  Let's get hacking" | pv -qL 20
+    set_color normal
+    echo ""
 end
 
 # initial scripts and patches
