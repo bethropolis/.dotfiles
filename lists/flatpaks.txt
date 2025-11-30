@@ -51,6 +51,7 @@ net.nokyan.Resources
 nl.emphisia.icon
 org.DolphinEmu.dolphin-emu
 org.audacityteam.Audacity
+org.gaphor.Gaphor
 org.gnome.Decibels
 org.gnome.Fractal
 org.gnome.Papers

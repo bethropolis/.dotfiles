@@ -111,10 +111,10 @@ end
 function fish_greeting
     fastfetch
     set_color cyan --bold
-    echo "→ Hiii $USER ✨" | pv -qL 15
+    echo "→ Hiii $USER ✨"
     set_color normal
     set_color brblack
-    echo "  Let's get hacking" | pv -qL 20
+    echo "  Let's get hacking"
     set_color normal
     echo ""
 end
