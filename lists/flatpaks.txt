@@ -8,6 +8,7 @@ com.github.marhkb.Pods
 com.github.neithern.g4music
 com.github.rafostar.Clapper
 com.github.tchx84.Flatseal
+com.github.tenderowl.frog
 com.mattjakeman.ExtensionManager
 com.notesnook.Notesnook
 com.play0ad.zeroad
