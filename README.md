@@ -3,8 +3,6 @@
 A collection of configuration files and scripts for my Linux environment. This repository contains my personal settings for various applications, terminal configurations, and system utilities, all designed to work together for a cohesive experience.
 
 
-![Preview](./.assets/bg.png)
-
 ---
 ## 📋 Config's Included
 
