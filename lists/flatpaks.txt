@@ -51,6 +51,7 @@ it.mijorus.smile
 me.iepure.devtoolbox
 net.newpipe.NewPipe
 net.nokyan.Resources
+net.pcsx2.PCSX2
 nl.emphisia.icon
 org.DolphinEmu.dolphin-emu
 org.audacityteam.Audacity
