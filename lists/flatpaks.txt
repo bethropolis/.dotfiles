@@ -20,7 +20,6 @@ com.usebruno.Bruno
 de.haeckerfelix.Fragments
 dev.geopjr.Collision
 dev.lapce.lapce
-dev.qwery.AddWater
 dev.vencord.Vesktop
 dev.zed.Zed
 eu.jumplink.Learn6502
