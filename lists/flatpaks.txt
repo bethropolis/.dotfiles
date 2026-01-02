@@ -31,9 +31,7 @@ io.github.giantpinkrobots.varia
 io.github.josephmawa.Egghead
 io.github.josephmawa.TextCompare
 io.github.kolunmi.Bazaar
-io.github.lincity_ng.lincity-ng
 io.github.nokse22.inspector
-io.github.nozwock.Packet
 io.github.shonebinu.Brief
 io.github.shonubot.Spruce
 io.github.swordpuffin.rewaita
