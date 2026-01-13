@@ -2,7 +2,6 @@ app.drey.Biblioteca
 app.zen_browser.zen
 be.alexandervanhee.gradia
 ca.desrt.dconf-editor
-com.cisco.PacketTracer
 com.collaboraoffice.Office
 com.github.huluti.Curtail
 com.github.marhkb.Pods
