@@ -13,7 +13,6 @@ com.mattjakeman.ExtensionManager
 com.notesnook.Notesnook
 com.play0ad.zeroad
 com.stremio.Stremio
-com.transmissionbt.Transmission
 com.usebottles.bottles
 com.usebruno.Bruno
 de.haeckerfelix.Fragments
@@ -26,7 +25,6 @@ info.febvre.Komikku
 io.github.BrisklyDev.Brisk
 io.github.Cookiiieee.WSelector
 io.github.flattool.Warehouse
-io.github.giantpinkrobots.varia
 io.github.josephmawa.Egghead
 io.github.josephmawa.TextCompare
 io.github.kolunmi.Bazaar
