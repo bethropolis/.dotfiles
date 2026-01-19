@@ -1,0 +1,40 @@
+#!/bin/bash
+# dim - my script to control external monitor brightness via ddcutil
+# Usage:
+#   dim 50      -> set brightness to 50%
+#   dim +10     -> increase by 10%
+#   dim -20     -> decrease by 20%
+
+# Auto detection was too hard so I just hardcoded it :)
+DISPLAY_NUM=1
+
+# Get current brightness
+CURRENT=$(ddcutil getvcp 10 --display "$DISPLAY_NUM" | awk '{for(i=1;i<=NF;i++){if($i~/current/) print $NF}}')
+
+if [ -z "$1" ]; then
+  echo "Usage: dim <value>"
+  echo "Examples:"
+  echo "  dim 50    -> set to 50%"
+  echo "  dim +10   -> increase by 10%"
+  echo "  dim -20   -> decrease by 20%"
+  exit 1
+fi
+
+INPUT="$1"
+NEW_BRIGHTNESS=""
+
+# Absolute or relative
+if [[ "$INPUT" =~ ^[+-][0-9]+$ ]]; then
+  NEW_BRIGHTNESS=$((CURRENT + INPUT))
+else
+  NEW_BRIGHTNESS=$INPUT
+fi
+
+# Clamp to 0-100
+if [ "$NEW_BRIGHTNESS" -lt 0 ]; then NEW_BRIGHTNESS=0; fi
+if [ "$NEW_BRIGHTNESS" -gt 100 ]; then NEW_BRIGHTNESS=100; fi
+
+# Apply brightness
+ddcutil setvcp 10 "$NEW_BRIGHTNESS" --display "$DISPLAY_NUM" >/dev/null
+
+echo "Brightness set to $NEW_BRIGHTNESS% on external monitor (Display $DISPLAY_NUM)"
