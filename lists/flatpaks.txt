@@ -26,6 +26,7 @@ eu.jumplink.Learn6502
 info.febvre.Komikku
 io.github.BrisklyDev.Brisk
 io.github.Cookiiieee.WSelector
+io.github.dp0sk.Crosspipe
 io.github.flattool.Warehouse
 io.github.josephmawa.Egghead
 io.github.josephmawa.TextCompare
