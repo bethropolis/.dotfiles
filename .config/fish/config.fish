@@ -98,8 +98,6 @@ alias anime="bash $HOME/.config/anime/anime.sh -t 8 -T 300 -o eng -r 1080 -a"
 alias animez="bash $HOME/.config/anime/zen-dl.sh -t 8 -T 300 -o dub -r 1080 -a"
 alias yeet='sudo dnf remove'
 alias install="sudo dnf install -y"
-alias update='sudo dnf update -y'
-alias fupdate='flatpak update -y'
 alias tx="toolbox enter"
 alias q="exit"
 

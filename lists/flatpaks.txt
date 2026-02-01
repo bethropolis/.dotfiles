@@ -4,9 +4,9 @@ be.alexandervanhee.gradia
 ca.desrt.dconf-editor
 com.collaboraoffice.Office
 com.github.huluti.Curtail
+com.github.johnfactotum.Foliate
 com.github.marhkb.Pods
 com.github.neithern.g4music
-com.github.rafostar.Clapper
 com.github.tchx84.Flatseal
 com.github.tenderowl.frog
 com.markdeepwell.GitY
@@ -41,7 +41,6 @@ io.github.zingytomato.netpeek
 io.gitlab.theevilskeleton.Upscaler
 io.missioncenter.MissionCenter
 io.podman_desktop.PodmanDesktop
-io.qt.qtwebengine.BaseApp
 it.fabiodistasio.AntaresSQL
 it.mijorus.gearlever
 it.mijorus.smile
