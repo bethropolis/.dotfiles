@@ -30,7 +30,6 @@ io.github.dp0sk.Crosspipe
 io.github.flattool.Warehouse
 io.github.josephmawa.Egghead
 io.github.josephmawa.TextCompare
-io.github.kolunmi.Bazaar
 io.github.nokse22.inspector
 io.github.shonebinu.Brief
 io.github.shonubot.Spruce
