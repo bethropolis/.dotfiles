@@ -26,56 +26,6 @@ CLEANUP=false
 VERBOSE=false
 START_TIME=$(date +%s)
 
-# Spinner animation
-SPINNER_PID=""
-spinner() {
-  local pid=$1
-  local message=$2
-  local spinstr='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
-  local temp
-
-  tput civis # Hide cursor
-  while kill -0 $pid 2>/dev/null; do
-    temp=${spinstr#?}
-    printf " ${CYAN}%c${NC}  %s" "$spinstr" "$message"
-    spinstr=$temp${spinstr%"$temp"}
-    sleep 0.1
-    printf "\r"
-  done
-  tput cnorm # Show cursor
-  printf "    \r"
-}
-
-# Progress bar
-show_progress() {
-  local current=$1
-  local total=$2
-  local width=40
-  local percentage=$((current * 100 / total))
-  local filled=$((width * current / total))
-  local empty=$((width - filled))
-
-  printf "\r${CYAN}["
-  printf "%${filled}s" | tr ' ' '█'
-  printf "%${empty}s" | tr ' ' '░'
-  printf "]${NC} %3d%% " $percentage
-}
-
-# Animated dots for waiting
-waiting_dots() {
-  local message=$1
-  local count=$2
-  for ((i = 1; i <= count; i++)); do
-    printf "\r${CYAN}%s" "$message"
-    for ((j = 0; j < (i % 4); j++)); do
-      printf "."
-    done
-    printf "   \r"
-    sleep 0.3
-  done
-  printf "\r%*s\r" ${#message} ""
-}
-
 # Function to print colored messages
 print_header() {
   echo -e "\n${BOLD}${BLUE}╔═══════════════════════════════════════════════════╗${NC}"
@@ -137,50 +87,178 @@ show_elapsed_time() {
   fi
 }
 
+# Display updating packages in a nice column format
+display_package_list() {
+  local packages="$1"
+  local max_display=15
+  local count=$(echo "$packages" | grep -v "^$" | wc -l)
+  
+  if [ $count -eq 0 ]; then
+    return
+  fi
+  
+  echo ""
+  echo -e "${BOLD}${DIM}Packages being updated:${NC}"
+  
+  # Display first packages in columns
+  echo "$packages" | grep -v "^$" | head -n $max_display | while read -r pkg; do
+    echo -e "  ${DIM}•${NC} ${CYAN}$pkg${NC}"
+  done
+  
+  # If more than max_display, show count of remaining
+  if [ $count -gt $max_display ]; then
+    local remaining=$((count - max_display))
+    echo -e "  ${DIM}... and $remaining more${NC}"
+  fi
+  echo ""
+}
+
+# Animated progress bar that pulses
+animate_progress() {
+  local message="$1"
+  local pid="$2"
+  local width=40
+  local pos=0
+  local direction=1
+  
+  tput civis # Hide cursor
+  
+  while kill -0 $pid 2>/dev/null; do
+    # Create progress bar with moving highlight
+    local bar=""
+    for ((i=0; i<width; i++)); do
+      if [ $i -eq $pos ] || [ $i -eq $((pos-1)) ] || [ $i -eq $((pos+1)) ]; then
+        bar="${bar}━"
+      else
+        bar="${bar}─"
+      fi
+    done
+    
+    printf "\r  ${CYAN}${message}${NC} ${BLUE}[${bar}]${NC}"
+    
+    # Move position
+    pos=$((pos + direction))
+    if [ $pos -ge $width ]; then
+      pos=$((width - 2))
+      direction=-1
+    elif [ $pos -lt 0 ]; then
+      pos=1
+      direction=1
+    fi
+    
+    sleep 0.08
+  done
+  
+  tput cnorm # Show cursor
+  printf "\r%*s\r" $((${#message} + width + 10)) ""
+}
+
+# Real progress bar with percentage tracking
+show_real_progress() {
+  local message="$1"
+  local pid="$2"
+  local log_file="$3"
+  local total="$4"
+  local width=40
+  
+  if [ "$total" -eq 0 ]; then
+    # Fallback to animated progress if we don't know total
+    animate_progress "$message" "$pid"
+    return
+  fi
+  
+  tput civis # Hide cursor
+  local completed=0
+  local last_completed=0
+  
+  while kill -0 $pid 2>/dev/null; do
+    # Count completed packages from log
+    if [ -f "$log_file" ]; then
+      # Look for various completion indicators in DNF output
+      completed=$(grep -c -E "(Installing|Upgrading|Cleanup|Verifying|Complete!)" "$log_file" 2>/dev/null | tr -d '\n' || echo "0")
+      
+      # Ensure completed is a valid number
+      if ! [[ "$completed" =~ ^[0-9]+$ ]]; then
+        completed=0
+      fi
+      
+      # Cap at total to avoid over 100%
+      if [ "$completed" -gt "$total" ]; then
+        completed=$total
+      fi
+    fi
+    
+    local percentage=$((completed * 100 / total))
+    local filled=$((width * completed / total))
+    local empty=$((width - filled))
+    
+    # Build progress bar
+    local bar=""
+    for ((i=0; i<filled; i++)); do
+      bar="${bar}█"
+    done
+    for ((i=0; i<empty; i++)); do
+      bar="${bar}░"
+    done
+    
+    printf "\r  ${CYAN}${message}${NC} ${BLUE}[${bar}]${NC} ${BOLD}%3d%%${NC} ${DIM}(%d/%d)${NC}" "$percentage" "$completed" "$total"
+    
+    sleep 0.3
+  done
+  
+  # Show 100% when complete
+  local bar=""
+  for ((i=0; i<width; i++)); do
+    bar="${bar}█"
+  done
+  printf "\r  ${CYAN}${message}${NC} ${GREEN}[${bar}]${NC} ${BOLD}100%%${NC} ${DIM}(%d/%d)${NC}\n" "$total" "$total"
+  
+  tput cnorm # Show cursor
+}
+
 # Function to show usage
 show_help() {
-  cat <<EOF
-${BOLD}${CYAN}╔════════════════════════════════════════════════════════════╗
-║          Fedora & Flatpak Update Script                   ║
-╚════════════════════════════════════════════════════════════╝${NC}
+  printf "${BOLD}${CYAN}╔════════════════════════════════════════════════════════════╗\n"
+  printf "║          Fedora & Flatpak Update Script                   ║\n"
+  printf "╚════════════════════════════════════════════════════════════╝${NC}\n\n"
 
-${BOLD}USAGE:${NC}
-    ${GREEN}update${NC} ${DIM}[OPTIONS]${NC}
+  printf "${BOLD}USAGE:${NC}\n"
+  printf "    ${GREEN}update${NC} ${DIM}[OPTIONS]${NC}\n\n"
 
-${BOLD}COMMON OPTIONS:${NC}
-    ${GREEN}-h${NC}, ${GREEN}--help${NC}              Show this help message
-    ${GREEN}-c${NC}, ${GREEN}--check${NC}             Check for updates without installing
-    ${GREEN}-C${NC}, ${GREEN}--cleanup${NC}           Update everything and cleanup old packages
-    ${GREEN}-n${NC}, ${GREEN}--dry-run${NC}           Preview what would be updated
-    ${GREEN}-q${NC}, ${GREEN}--quiet${NC}             Minimal output mode
-    ${GREEN}-v${NC}, ${GREEN}--verbose${NC}           Show detailed output
+  printf "${BOLD}COMMON OPTIONS:${NC}\n"
+  printf "    ${GREEN}-h${NC}, ${GREEN}--help${NC}              Show this help message\n"
+  printf "    ${GREEN}-c${NC}, ${GREEN}--check${NC}             Check for updates without installing\n"
+  printf "    ${GREEN}-C${NC}, ${GREEN}--cleanup${NC}           Update everything and cleanup old packages\n"
+  printf "    ${GREEN}-n${NC}, ${GREEN}--dry-run${NC}           Preview what would be updated\n"
+  printf "    ${GREEN}-q${NC}, ${GREEN}--quiet${NC}             Minimal output mode\n"
+  printf "    ${GREEN}-v${NC}, ${GREEN}--verbose${NC}           Show detailed DNF/Flatpak output\n\n"
 
-${BOLD}SELECTIVE UPDATES:${NC}
-    ${GREEN}-d${NC}, ${GREEN}--skip-dnf${NC}          Skip system (DNF) updates
-    ${GREEN}-f${NC}, ${GREEN}--skip-flatpak${NC}      Skip Flatpak updates
+  printf "${BOLD}SELECTIVE UPDATES:${NC}\n"
+  printf "    ${GREEN}-d${NC}, ${GREEN}--skip-dnf${NC}          Skip system (DNF) updates\n"
+  printf "    ${GREEN}-f${NC}, ${GREEN}--skip-flatpak${NC}      Skip Flatpak updates\n\n"
 
-${BOLD}ADVANCED OPTIONS:${NC}
-    ${GREEN}-r${NC}, ${GREEN}--reboot${NC}            Auto-reboot if kernel was updated
-    ${GREEN}-y${NC}, ${GREEN}--yes${NC}               Skip all confirmations (use with caution)
+  printf "${BOLD}ADVANCED OPTIONS:${NC}\n"
+  printf "    ${GREEN}-r${NC}, ${GREEN}--reboot${NC}            Auto-reboot if kernel was updated\n"
+  printf "    ${GREEN}-y${NC}, ${GREEN}--yes${NC}               Skip all confirmations (use with caution)\n\n"
 
-${BOLD}EXAMPLES:${NC}
-    ${CYAN}update${NC}                   ${DIM}# Update everything${NC}
-    ${CYAN}update -c${NC}                ${DIM}# Check what updates are available${NC}
-    ${CYAN}update -C${NC}                ${DIM}# Update + cleanup old packages${NC}
-    ${CYAN}update -d${NC}                ${DIM}# Update only Flatpak apps${NC}
-    ${CYAN}update -f${NC}                ${DIM}# Update only system packages${NC}
-    ${CYAN}update -n${NC}                ${DIM}# Dry run (see what would update)${NC}
-    ${CYAN}update -r${NC}                ${DIM}# Update and reboot if needed${NC}
+  printf "${BOLD}EXAMPLES:${NC}\n"
+  printf "    ${CYAN}update${NC}                   ${DIM}# Update everything (clean output)${NC}\n"
+  printf "    ${CYAN}update -v${NC}                ${DIM}# Update with full DNF/Flatpak output${NC}\n"
+  printf "    ${CYAN}update -c${NC}                ${DIM}# Check what updates are available${NC}\n"
+  printf "    ${CYAN}update -C${NC}                ${DIM}# Update + cleanup old packages${NC}\n"
+  printf "    ${CYAN}update -d${NC}                ${DIM}# Update only Flatpak apps${NC}\n"
+  printf "    ${CYAN}update -f${NC}                ${DIM}# Update only system packages${NC}\n"
+  printf "    ${CYAN}update -n${NC}                ${DIM}# Dry run (see what would update)${NC}\n"
+  printf "    ${CYAN}update -r${NC}                ${DIM}# Update and reboot if needed${NC}\n\n"
 
-${BOLD}NOTES:${NC}
-    ${YELLOW}•${NC} Requires sudo privileges for system updates
-    ${YELLOW}•${NC} Creates a detailed log at ${DIM}/tmp/update-script.log${NC}
-    ${YELLOW}•${NC} Reboot recommended after kernel updates
+  printf "${BOLD}NOTES:${NC}\n"
+  printf "    ${YELLOW}•${NC} Requires sudo privileges for system updates\n"
+  printf "    ${YELLOW}•${NC} Creates a detailed log at ${DIM}/tmp/update-script.log${NC}\n"
+  printf "    ${YELLOW}•${NC} Use ${GREEN}-v${NC} flag to see full output from DNF and Flatpak\n"
+  printf "    ${YELLOW}•${NC} Reboot recommended after kernel updates\n\n"
 
-${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}
-${DIM}For issues or suggestions, check the log file or your system logs${NC}
-
-EOF
+  printf "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
+  printf "${DIM}For issues or suggestions, check the log file or your system logs${NC}\n\n"
 }
 
 # Parse command line arguments
@@ -240,6 +318,7 @@ done
 
 # Log file
 LOGFILE="/tmp/update-script.log"
+: > "$LOGFILE"  # Clear previous log
 exec > >(tee -a "$LOGFILE") 2>&1
 
 # Start
@@ -262,6 +341,9 @@ if [ "$QUIET" = false ]; then
   fi
 
   echo -e "\n${DIM}Log file: $LOGFILE${NC}"
+  if [ "$VERBOSE" = false ]; then
+    echo -e "${DIM}Tip: Use -v flag for detailed output${NC}"
+  fi
   echo -e "${DIM}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${NC}\n"
 
   # Small pause for readability
@@ -281,44 +363,122 @@ if [ "$SKIP_DNF" = false ]; then
   if [ "$CHECK_ONLY" = true ]; then
     print_info "Checking for system updates..."
 
-    # Count available updates
-    UPDATE_COUNT=$(sudo dnf check-update -q 2>/dev/null | grep -v "^$" | grep -v "Last metadata" | wc -l)
+    # Get list of packages to update
+    TEMP_CHECK=$(mktemp)
+    sudo dnf check-update -q 2>/dev/null > "$TEMP_CHECK" || true
+    PACKAGE_LIST=$(awk '{print $1}' "$TEMP_CHECK" | grep -v "^$" | grep -v "Last" | grep -v "Fedora" | grep -v "^Security" | grep -v "^Bugfix" | sort -u)
+    UPDATE_COUNT=$(echo "$PACKAGE_LIST" | grep -v "^$" | wc -l)
 
     if [ "$UPDATE_COUNT" -gt 0 ]; then
       print_warning "$UPDATE_COUNT package(s) available for update"
       if [ "$VERBOSE" = true ]; then
         echo ""
-        sudo dnf check-update
+        cat "$TEMP_CHECK"
+      else
+        display_package_list "$PACKAGE_LIST"
       fi
     else
       print_success "System is up to date!"
     fi
+    rm -f "$TEMP_CHECK"
 
   elif [ "$DRY_RUN" = true ]; then
     print_info "Dry run: Checking what would be updated..."
-    echo ""
-    sudo dnf upgrade --refresh --assumeno 2>/dev/null || true
+    
+    # Get clean list of packages
+    TEMP_FILE=$(mktemp)
+    sudo dnf check-update -q 2>/dev/null > "$TEMP_FILE" || true
+    # Filter out all header/metadata lines and only keep package names
+    PACKAGE_LIST=$(cat "$TEMP_FILE" | \
+      grep -v "^$" | \
+      grep -v "Last metadata" | \
+      grep -v "^Fedora" | \
+      grep -v "^Security" | \
+      grep -v "^Bugfix" | \
+      grep -v "Obsoleting" | \
+      grep -v "^Upgrading" | \
+      grep -v "^Installing" | \
+      grep -v "packages$" | \
+      awk '{print $1}' | \
+      grep -v "^[0-9]*$" | \
+      sort -u)
+    UPDATE_COUNT=$(echo "$PACKAGE_LIST" | grep -v "^$" | wc -l)
+    
+    if [ "$UPDATE_COUNT" -gt 0 ]; then
+      print_warning "$UPDATE_COUNT package(s) would be updated"
+      display_package_list "$PACKAGE_LIST"
+    else
+      print_success "No updates available"
+    fi
+    
+    rm -f "$TEMP_FILE"
+    
+    if [ "$VERBOSE" = true ]; then
+      echo ""
+      echo -e "${DIM}Full DNF output:${NC}"
+      sudo dnf upgrade --refresh --assumeno 2>/dev/null || true
+    fi
 
   else
-    print_info "Refreshing repository metadata..."
+    print_info "Checking for updates..."
 
-    # Check for updates first to show count
-    UPDATE_COUNT=$(sudo dnf check-update -q 2>/dev/null | grep -v "^$" | grep -v "Last metadata" | wc -l || echo "0")
+    # Check for updates first to show count and list
+    TEMP_FILE=$(mktemp)
+    sudo dnf check-update -q 2>/dev/null > "$TEMP_FILE" || true
+    # Filter out all header/metadata lines and only keep package names
+    PACKAGE_LIST=$(cat "$TEMP_FILE" | \
+      grep -v "^$" | \
+      grep -v "Last metadata" | \
+      grep -v "^Fedora" | \
+      grep -v "^Security" | \
+      grep -v "^Bugfix" | \
+      grep -v "Obsoleting" | \
+      grep -v "^Upgrading" | \
+      grep -v "^Installing" | \
+      grep -v "packages$" | \
+      awk '{print $1}' | \
+      grep -v "^[0-9]*$" | \
+      sort -u)
+    UPDATE_COUNT=$(echo "$PACKAGE_LIST" | grep -v "^$" | wc -l)
 
     if [ "$UPDATE_COUNT" -eq 0 ]; then
       print_success "System is already up to date!"
+      rm -f "$TEMP_FILE"
     else
       print_info "Found $UPDATE_COUNT package(s) to update"
-      echo ""
+      
+      # Display package names in clean list (always show, unless verbose)
+      if [ "$VERBOSE" = false ]; then
+        display_package_list "$PACKAGE_LIST"
+      fi
+      rm -f "$TEMP_FILE"
 
-      # Perform the update
-      sudo dnf upgrade --refresh -y
-
-      echo ""
-      print_success "System packages updated successfully!"
+      if [ "$VERBOSE" = true ]; then
+        # Show full output
+        echo ""
+        sudo dnf upgrade --refresh -y
+      else
+        # Clean output with progress bar
+        TEMP_OUTPUT=$(mktemp)
+        sudo dnf upgrade --refresh -y > "$TEMP_OUTPUT" 2>&1 &
+        DNF_PID=$!
+        
+        show_real_progress "Updating system packages" $DNF_PID "$TEMP_OUTPUT" $UPDATE_COUNT
+        wait $DNF_PID
+        DNF_EXIT=$?
+        
+        rm -f "$TEMP_OUTPUT"
+        
+        if [ $DNF_EXIT -eq 0 ]; then
+          print_success "System packages updated successfully!"
+        else
+          print_error "Update failed! Check log for details: $LOGFILE"
+        fi
+      fi
 
       # Show some stats
       if [ "$VERBOSE" = true ]; then
+        echo ""
         INSTALLED_COUNT=$(sudo dnf list installed 2>/dev/null | wc -l)
         print_stats "Total packages installed: $INSTALLED_COUNT"
       fi
@@ -334,47 +494,83 @@ if [ "$SKIP_FLATPAK" = false ]; then
     if [ "$CHECK_ONLY" = true ]; then
       print_info "Checking for Flatpak updates..."
 
-      # Get update count
-      UPDATE_LIST=$(flatpak remote-ls --updates 2>/dev/null)
+      # Get update list with full IDs
+      UPDATE_LIST=$(flatpak remote-ls --updates --columns=application 2>/dev/null)
       UPDATE_COUNT=$(echo "$UPDATE_LIST" | grep -v "^$" | wc -l)
 
       if [ "$UPDATE_COUNT" -gt 0 ]; then
         print_warning "$UPDATE_COUNT Flatpak app(s) available for update"
         if [ "$VERBOSE" = true ]; then
           echo ""
-          echo "$UPDATE_LIST"
+          flatpak remote-ls --updates 2>/dev/null
+        else
+          display_package_list "$UPDATE_LIST"
         fi
       else
         print_success "All Flatpak apps are up to date!"
       fi
 
     elif [ "$DRY_RUN" = true ]; then
-      print_info "Dry run: Flatpak apps that would be updated:"
-      echo ""
-      UPDATE_LIST=$(flatpak remote-ls --updates 2>/dev/null)
-      if [ -n "$UPDATE_LIST" ]; then
-        echo "$UPDATE_LIST"
+      print_info "Dry run: Checking what would be updated..."
+      
+      UPDATE_LIST=$(flatpak remote-ls --updates --columns=application 2>/dev/null)
+      UPDATE_COUNT=$(echo "$UPDATE_LIST" | grep -v "^$" | wc -l)
+      
+      if [ "$UPDATE_COUNT" -gt 0 ]; then
+        print_warning "$UPDATE_COUNT Flatpak app(s) would be updated"
+        display_package_list "$UPDATE_LIST"
       else
         print_success "No Flatpak updates available"
+      fi
+      
+      if [ "$VERBOSE" = true ]; then
+        echo ""
+        echo -e "${DIM}Full Flatpak output:${NC}"
+        flatpak remote-ls --updates 2>/dev/null
       fi
 
     else
       # Check for updates first
-      UPDATE_COUNT=$(flatpak remote-ls --updates 2>/dev/null | grep -v "^$" | wc -l)
+      print_info "Checking for Flatpak updates..."
+      UPDATE_LIST=$(flatpak remote-ls --updates --columns=application 2>/dev/null)
+      UPDATE_COUNT=$(echo "$UPDATE_LIST" | grep -v "^$" | wc -l)
 
       if [ "$UPDATE_COUNT" -eq 0 ]; then
         print_success "All Flatpak apps are up to date!"
       else
-        print_info "Updating $UPDATE_COUNT Flatpak application(s)..."
-        echo ""
+        print_info "Found $UPDATE_COUNT Flatpak application(s) to update"
+        
+        # Display app IDs
+        if [ "$VERBOSE" = false ]; then
+          display_package_list "$UPDATE_LIST"
+        fi
 
-        flatpak update -y
-
-        echo ""
-        print_success "Flatpak applications updated successfully!"
+        if [ "$VERBOSE" = true ]; then
+          # Show full output
+          echo ""
+          flatpak update -y
+        else
+          # Clean output with progress bar
+          TEMP_OUTPUT=$(mktemp)
+          flatpak update -y > "$TEMP_OUTPUT" 2>&1 &
+          FLATPAK_PID=$!
+          
+          show_real_progress "Updating Flatpak applications" $FLATPAK_PID "$TEMP_OUTPUT" $UPDATE_COUNT
+          wait $FLATPAK_PID
+          FLATPAK_EXIT=$?
+          
+          rm -f "$TEMP_OUTPUT"
+          
+          if [ $FLATPAK_EXIT -eq 0 ]; then
+            print_success "Flatpak applications updated successfully!"
+          else
+            print_error "Update failed! Check log for details: $LOGFILE"
+          fi
+        fi
 
         # Show stats
         if [ "$VERBOSE" = true ]; then
+          echo ""
           APP_COUNT=$(flatpak list --app 2>/dev/null | wc -l)
           print_stats "Total Flatpak apps installed: $APP_COUNT"
         fi
@@ -396,18 +592,26 @@ if [ "$CLEANUP" = true ] && [ "$CHECK_ONLY" = false ] && [ "$DRY_RUN" = false ];
     # Get disk usage before
     CACHE_BEFORE=$(du -sm /var/cache/dnf 2>/dev/null | cut -f1 || echo "0")
 
-    print_info "Removing old kernels and unused packages..."
-    sudo dnf autoremove -y
-    print_success "Unused packages removed"
-
-    print_info "Cleaning package cache..."
-    sudo dnf clean all
+    if [ "$VERBOSE" = true ]; then
+      print_info "Removing old kernels and unused packages..."
+      sudo dnf autoremove -y
+      print_info "Cleaning package cache..."
+      sudo dnf clean all
+    else
+      TEMP_OUTPUT=$(mktemp)
+      (sudo dnf autoremove -y && sudo dnf clean all) > "$TEMP_OUTPUT" 2>&1 &
+      CLEANUP_PID=$!
+      
+      animate_progress "Cleaning up old packages" $CLEANUP_PID
+      wait $CLEANUP_PID
+      rm -f "$TEMP_OUTPUT"
+    fi
 
     # Get disk usage after
     CACHE_AFTER=$(du -sm /var/cache/dnf 2>/dev/null | cut -f1 || echo "0")
     SPACE_FREED=$((CACHE_BEFORE - CACHE_AFTER))
 
-    print_success "DNF cache cleaned"
+    print_success "DNF cleanup completed"
     if [ "$SPACE_FREED" -gt 0 ]; then
       print_stats "Freed approximately ${SPACE_FREED}MB of disk space"
     fi
@@ -417,13 +621,23 @@ if [ "$CLEANUP" = true ] && [ "$CHECK_ONLY" = false ] && [ "$DRY_RUN" = false ];
     echo ""
     print_section "Flatpak Cleanup"
 
-    print_info "Removing unused Flatpak runtimes..."
-
     # Check if there are unused runtimes
-    UNUSED_COUNT=$(flatpak uninstall --unused --assumeno 2>/dev/null | grep -c "^[0-9]" || echo "0")
+    UNUSED_CHECK=$(flatpak uninstall --unused --assumeno 2>/dev/null || echo "")
+    UNUSED_COUNT=$(echo "$UNUSED_CHECK" | grep -E "^\s+[0-9]" | wc -l)
 
     if [ "$UNUSED_COUNT" -gt 0 ]; then
-      flatpak uninstall --unused -y
+      if [ "$VERBOSE" = true ]; then
+        print_info "Removing unused Flatpak runtimes..."
+        flatpak uninstall --unused -y
+      else
+        TEMP_OUTPUT=$(mktemp)
+        flatpak uninstall --unused -y > "$TEMP_OUTPUT" 2>&1 &
+        FLATPAK_CLEANUP_PID=$!
+        
+        animate_progress "Removing unused runtimes" $FLATPAK_CLEANUP_PID
+        wait $FLATPAK_CLEANUP_PID
+        rm -f "$TEMP_OUTPUT"
+      fi
       print_success "Removed $UNUSED_COUNT unused runtime(s)"
     else
       print_success "No unused Flatpak runtimes found"
@@ -532,3 +746,4 @@ if [ "$QUIET" = false ]; then
   echo -e "  ${CYAN}${RANDOM_MSG}${NC}"
   echo ""
 fi
+
