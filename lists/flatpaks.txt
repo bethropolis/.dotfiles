@@ -18,7 +18,6 @@ com.stremio.Stremio
 com.usebottles.bottles
 com.usebruno.Bruno
 de.haeckerfelix.Fragments
-dev.geopjr.Collision
 dev.lapce.lapce
 dev.vencord.Vesktop
 dev.zed.Zed
@@ -28,7 +27,6 @@ io.github.BrisklyDev.Brisk
 io.github.Cookiiieee.WSelector
 io.github.dp0sk.Crosspipe
 io.github.flattool.Warehouse
-io.github.josephmawa.Egghead
 io.github.josephmawa.TextCompare
 io.github.kolunmi.Bazaar
 io.github.nokse22.inspector
@@ -68,4 +66,3 @@ org.ppsspp.PPSSPP
 org.videolan.VLC
 page.kramo.Cartridges
 sh.ppy.osu
-xyz.ketok.Speedtest
