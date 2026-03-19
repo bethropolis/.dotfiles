@@ -1,7 +1,5 @@
 app.zen_browser.zen
 be.alexandervanhee.gradia
-ca.desrt.dconf-editor
-com.collaboraoffice.Office
 com.github.huluti.Curtail
 com.github.johnfactotum.Foliate
 com.github.marhkb.Pods
@@ -49,7 +47,6 @@ org.gnome.Decibels
 org.gnome.Fractal
 org.gnome.Mines
 org.gnome.Papers
-org.gnome.design.IconLibrary
 org.kde.ark
 org.kde.kate
 org.localsend.localsend_app
