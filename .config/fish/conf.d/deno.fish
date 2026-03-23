@@ -1,1 +1,0 @@
-source "/home/bet/.deno/env.fish"

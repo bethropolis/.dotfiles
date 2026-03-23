@@ -1,14 +1,10 @@
-if status is-interactive
-    # Commands to run in interactive sessions can go here
+if not status is-interactive
+    return
 end
 
 set -x DOTFILES $HOME/Projects/.dotfiles/
 
 # User specific environment
-# Fish handles PATH differently - we use fish_add_path
-fish_add_path $HOME/.local/bin
-fish_add_path $HOME/go/bin
-
 # some apps are just spitting their configs at home
 set -gx XDG_CONFIG_HOME $HOME/.config
 
@@ -60,7 +56,6 @@ end
 # My aliases
 alias cd="z"
 alias b="cd -"
-alias ls="lsd"
 alias lsh="ls -lh"
 alias cat="bat"
 alias du="erd"
@@ -72,7 +67,6 @@ alias wl="wl-copy"
 alias op="xdg-open"
 alias fzb="fzf --preview 'bat --color=always --style=numbers --line-range=:500 {}'"
 alias nv="nvim"
-alias docker="podman"
 alias bashrc="nv $HOME/.bashrc"
 alias brc="bashrc"
 alias fishrc="nv $HOME/.config/fish/config.fish"
@@ -86,16 +80,11 @@ alias ccl="cargo clippy"
 alias dots="cd $DOTFILES"
 alias cls="clear"
 alias neofetch="fastfetch"
-alias mariadb="mariadb -u bethro -p"
 alias lg='lazygit'
 alias ts="tspin"
 alias tsfl="tspin --follow"
 alias grab='grab --output ./codebase.md'
-alias vlc="flatpak run org.videolan.VLC"
-alias clap="flatpak run com.github.rafostar.Clapper"
 alias zed="flatpak run dev.zed.Zed"
-alias anime="bash $HOME/.config/anime/anime.sh -t 8 -T 300 -o eng -r 1080 -a"
-alias animez="bash $HOME/.config/anime/zen-dl.sh -t 8 -T 300 -o dub -r 1080 -a"
 alias yeet='sudo dnf remove'
 alias install="sudo dnf install -y"
 alias tx="toolbox enter"
@@ -106,19 +95,15 @@ function reload_fish
     source ~/.config/fish/config.fish
 end
 
-function fish_greeting
-    fastfetch
-    set_color cyan --bold
-    echo "→ Hiii $USER ✨"
-    set_color normal
-    set_color brblack
-    echo "  Let's get hacking"
-    set_color normal
-    echo ""
-end
+#function fish_greeting
+#    fastfetch
+#    set_color cyan --bold
+#    echo "→ Hiii $USER ✨"
+#    set_color normal
+#    set_color brblack
+#    echo "  Let's get hacking"
+#    set_color normal
+#    echo ""
+#end
 
 # initial scripts and patches
-
-# bun
-# set -gx BUN_INSTALL "$HOME/.bun"
-fish_add_path $HOME/.bun/bin
