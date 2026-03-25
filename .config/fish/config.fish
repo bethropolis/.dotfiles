@@ -30,8 +30,13 @@ if test -d $HOME/.cargo
     fish_add_path $HOME/.cargo/bin
 end
 
-# Initialize starship if installed
+# Initialize starship, different look on containers
 if command -v starship >/dev/null
+    if test -n "$CONTAINER_ID"
+        set -gx STARSHIP_CONFIG ~/.config/starship-distrobox.toml
+    else
+        set -gx STARSHIP_CONFIG ~/.config/starship.toml
+    end
     starship init fish | source
 end
 
